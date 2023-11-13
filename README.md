@@ -1,6 +1,6 @@
 # LLM Side Projects
 **N.B. The work showcased here is still a work in progress and is not yet complete**
-The overall intention of the project is to develop a very basic Q&A Generative AI model using the HuggingFace🤗 Transformers API with PYTorch as a backend
+The overall intention of the project is to develop a very basic Q&A Generative AI model using the Hugging Face🤗 Transformers API with PYTorch as a backend
 
 ## Table of Contents
 - Project Overview
@@ -13,7 +13,7 @@ Please note that this project has been developed with an educational goal, rathe
 Another note to point out is that even though the code is developed as components (and not notebooks). It does contain several `print()` statements that will display various outputs such as the values in the train/test splits, etc. This is more of a personal preference, since I much prefer working with components than notebooks. Notebook performance (particularly with text data) is notoriously slow and often crashes. Also, developing code in component form does make it much more efficient for moving into production!
 
 ## Installation
-In order to use the HuggingFace🤗 Transformers API locally, you'll need to create a Virtual Environment. These are the steps:
+In order to use the Hugging Face🤗 Transformers API locally, you'll need to create a Virtual Environment. These are the steps:
 1. In a command terminal type: `python -m venv venv` (this will create a new virtual environment called 'venv' on your local machine)
 2. Activate the Virtual Environment: `venv/Scripts/activate`
 3. Install the following dependencies:
