@@ -26,5 +26,13 @@ pip install 'transformers[torch]'
 Clone the repo with the following command `git clone https://github.com/VikramsDataScience/LLM_Side_Projects.git` and the sequence of component execution is explained in the following 'Component Usage' section.
 
 ## Component Usage
+**N.B. Please contact me for the job ad corpus data. I haven't publicly shared the Seek job ads data upon which the model was built.**
+
 So far, there are only two components that need to be run in the following order:
-1. 
+1. **'Job_Ad_Q&A_PreProcessing.py':** 
+    - Change folder into `cd .\src_preprocessing\`
+    - Run the component by typing `python '.\Job_Ad_Q&A_PreProcessing.py'`
+    - Once this has successfully run 
+2. **'Job_Ad_Q&A_Train_Test_Tokenize.py':**
+    - Change folder into `cd .\src_train_test_tokenize\`
+    - Run the component by typing `python '.\Job_Ad_Q&A_Train_Test_Tokenize.py'`
