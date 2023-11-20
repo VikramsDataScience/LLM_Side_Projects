@@ -1,5 +1,5 @@
 # LLM Side Projects
-**N.B. The work showcased here is still a work in progress and is not yet complete**
+**N.B. The work showcased here is still a work in progress and is not yet complete** <br>
 The overall intention of the project is to develop a very basic Q&A Generative AI model using the Hugging Face🤗 Transformers with PYTorch as a backend
 
 ## Table of Contents
