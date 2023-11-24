@@ -4,10 +4,9 @@ from datasets import load_dataset, Dataset # ! pip install datasets
 from pathlib import Path
 
 # Declare paths for the raw and cleaned JSON files
-raw_data_path = 'C:/Sample Data/'
 content_path = 'C:/Sample Data/content_cleaned.json'
 # Declare path for saved models
-saved_models_path = 'C:/Users/Vikram Pande/venv/saved_models'
+saved_models_path = Path('C:/Users/Vikram Pande/Job_Ad_QA_HuggingFace/saved_models')
 
 # IMPORTANT: Before selecting a sentence embedding pretrained_model, please review the updated performance metrics for other commonly used models here (https://www.sbert.net/docs/pretrained_models.html#model-overview)
 pretrained_model = 'sentence-transformers/multi-qa-mpnet-base-dot-v1'
@@ -25,7 +24,7 @@ clean_content = load_dataset('json',
                              split='train')
 
 # Convert 'clean_content' list to a Dataset
-clean_content_dataset = Dataset.from_dict({'content': clean_content['content'][0:1000]}) # [0:10000]
+clean_content_dataset = Dataset.from_dict({'content': clean_content['content'][0:200]}) # [0:10000]
 
 # Verify if GPU is being used and mount the Pre-trained Model and inputs to the GPU
 print('Is GPU available?: ', torch.cuda.is_available())
@@ -38,7 +37,7 @@ def cls_pooling(last_hidden_state):
 
 def encode_batch(batch):
     # Tokenize a batch of sentences
-    encoded_input = tokenizer(batch['content'], padding=True, truncation=True, return_tensors='pt').to(device)
+    encoded_input = tokenizer(batch['content'], padding='max_length', truncation=True, return_tensors='pt').to(device)
 
     # Disable SGD to eliminate randomizing error loss and improve inference
     with torch.no_grad():
@@ -59,13 +58,14 @@ query_emb = encode_batch({'content': [query]})
 # Batch size for processing the documents
 batch_size = 100
 
-# Use map function to process the documents in batches
+# Use map function to process the documents in batches and save the model for further downstream
 docs = clean_content_dataset.map(encode_batch, batched=True, batch_size=batch_size)
+docs.save_to_disk(Path(saved_models_path / 'encoded_docs.pkl'))
 
 # Extract embeddings from the list of dictionaries
 doc_embeddings = [item['content'] for item in docs]
 
-# Convert the list of embeddings to a tensor
+# Convert the list of embeddings to a tensor and concatenate/stack the tensors with list comprehension
 doc_embeddings = torch.cat([torch.tensor(embedding).unsqueeze(0) for embedding in doc_embeddings], dim=0)
 
 # Compute dot score between the query and all document embeddings
