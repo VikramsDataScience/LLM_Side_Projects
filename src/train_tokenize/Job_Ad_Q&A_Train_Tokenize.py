@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer, AutoModel
 import torch
-from datasets import load_dataset, Dataset # ! pip install datasets
+from datasets import load_dataset, Dataset
 from pathlib import Path
 
 # Declare paths for the raw and cleaned JSON files
@@ -24,7 +24,7 @@ clean_content = load_dataset('json',
                              split='train')
 
 # Convert 'clean_content' list to a Dataset
-clean_content_dataset = Dataset.from_dict({'content': clean_content['content'][0:200]}) # [0:10000]
+clean_content_dataset = Dataset.from_dict({'content': clean_content['content']}) # [0:10000]
 
 # Verify if GPU is being used and mount the Pre-trained Model and inputs to the GPU
 print('Is GPU available?: ', torch.cuda.is_available())
@@ -36,7 +36,7 @@ def cls_pooling(last_hidden_state):
     return last_hidden_state[:, 0]
 
 def encode_batch(batch):
-    # Tokenize a batch of sentences
+    # Tokenize a batch of sentences and mount to the GPU
     encoded_input = tokenizer(batch['content'], padding='max_length', truncation=True, return_tensors='pt').to(device)
 
     # Disable SGD to eliminate randomizing error loss and improve inference
@@ -49,35 +49,9 @@ def encode_batch(batch):
 
     return {'content': embeddings}
 
-# Write sentence embedding
-query = 'Write a job ad for a software engineer'
-
-# Encode query and pass it as a list within a dictionary
-query_emb = encode_batch({'content': [query]})
-
 # Batch size for processing the documents
 batch_size = 100
 
 # Use map function to process the documents in batches and save the model for further downstream
 docs = clean_content_dataset.map(encode_batch, batched=True, batch_size=batch_size)
-docs.save_to_disk(Path(saved_models_path / 'encoded_docs.pkl'))
-
-# Extract embeddings from the list of dictionaries
-doc_embeddings = [item['content'] for item in docs]
-
-# Convert the list of embeddings to a tensor and concatenate/stack the tensors with list comprehension
-doc_embeddings = torch.cat([torch.tensor(embedding).unsqueeze(0) for embedding in doc_embeddings], dim=0)
-
-# Compute dot score between the query and all document embeddings
-scores = torch.mm(query_emb['content'], doc_embeddings.transpose(0, 1).to(device))[0]
-
-# Combine corpus & scores
-doc_score_pairs = list(zip(clean_content_dataset['content'], scores.cpu().tolist()))
-
-# Sort by decreasing score and capture top 5 ranked results
-doc_score_pairs = sorted(doc_score_pairs, key=lambda x: x[1], reverse=True)[:5]
-
-# Output predictions & scores
-for doc, score in doc_score_pairs:
-    print(f'ACCURACY SCORE: {score}')
-    print(f'JOB AD: {doc}')
+docs.save_to_disk(Path(saved_models_path))
