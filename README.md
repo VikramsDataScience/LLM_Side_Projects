@@ -27,13 +27,17 @@ pip install 'transformers[torch]'
 Clone the repo with the following command `git clone https://github.com/VikramsDataScience/LLM_Side_Projects.git` and the sequence of component execution is explained in the following 'Component Usage' section.
 
 ## Component Usage
-**N.B. Please contact me for the job ad corpus data. I haven't publicly shared the Seek job ads data upon which the model was built.**
+**N.B. Please contact me for the job ad corpus data. I haven't publicly shared the job ads data upon which the model was trained.**
 
-So far, there are only two components that need to be run in the following order:
-1. **'Job_Ad_Q&A_PreProcessing.py':** 
+Please run the components in the following order:
+1. **'Job_Ad_Q&A_PreProcessing.py' (only need to run once, or when there is new data):** 
     - Change folder into `cd .\src_preprocessing\`
     - Run the component by typing `python '.\Job_Ad_Q&A_PreProcessing.py'`
     - Once this has successfully run 
-2. **'Job_Ad_Q&A_Train_Test_Tokenize.py':**
-    - Change folder into `cd .\src_train_test_tokenize\`
-    - Run the component by typing `python '.\Job_Ad_Q&A_Train_Test_Tokenize.py'`
+2. **'Job_Ad_Q&A_Train_Tokenize.py' (only need to run once, or when there is new data):**
+    - Change folder into `cd .\src_train_tokenize\`
+    - Run the component by typing `python '.\Job_Ad_Q&A_Train_Tokenize.py'`
+3. **'Job_Ad_Q&A_Predictions_Scoring.py' (Run every time):**
+    - Change folder into `cd .\predictions_scoring\`
+    - This component is a little different to the other two. This is the component that actually provides the Q&A. A query can be parsed directly from the CLI via `argparse`
+    - Run the component by typing (change the query to suit your use case) `python '.\Job_Ad_Q&A_Predictions_Scoring.py' --query 'Write a job ad for a data scientist'`
