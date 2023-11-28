@@ -1,5 +1,5 @@
-# LLM Side Projects
-The overall intention of the project is to develop a proof of concept Q&A Generative AI model using the Hugging Face🤗 Transformers API with PYTorch as a backend.
+# Job Ad Q&A Model
+The overall intention of the project is to develop a proof of concept Q&A Generative AI model using PYTorch and a little bit of the Hugging Face🤗 Transformers API.
 
 ## Table of Contents
 - Project Overview
