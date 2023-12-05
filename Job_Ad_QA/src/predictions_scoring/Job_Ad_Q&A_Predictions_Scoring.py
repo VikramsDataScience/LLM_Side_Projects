@@ -8,11 +8,12 @@ import argparse
 pretrained_model = 'sentence-transformers/multi-qa-mpnet-base-dot-v1'
 # Paths for preprocessed corpus and saved models
 content_path = 'C:/Sample Data/content_cleaned.json'
-saved_models_path = 'C:/Users/Vikram Pande/Job_Ad_QA_HuggingFace/saved_models'
+saved_models_path = 'C:/Users/Vikram Pande/Side_Projects/Job_Ad_QA/saved_models'
 
 # Initialise argparse
 parser = argparse.ArgumentParser('Predictions_Scoring')
-parser.add_argument('--query', type=str, help='Please enter query string or prompt to generate a model\'s response')
+parser.add_argument('--query', type=str, help='Please enter query string or prompt to generate a model\'s response',
+                    default='Write a job ad for a Data Scientist')
 args = parser.parse_args()
 
 # Create a checkpoint (i.e. pretrained data), and initialize the tokens
@@ -56,10 +57,9 @@ def encode_batch(batch):
 # Load the tokenized docs that were generated from the 'Job_Ad_Q&A_Train_Tokenize' component
 docs_tokenizer = Dataset.load_from_disk(Path(saved_models_path))
 
-# Encode query and convert to Tensor
+# Encode query and convert to Tensor N.B. try to avoid calling torch.tensor() when squeezing tensor to a lower dimension, as this throws UserWarnings
 query_emb = encode_batch({'content': [args.query]})
-query_emb = torch.tensor(query_emb['content']).squeeze(0)
-query_emb = query_emb.unsqueeze(0)
+query_emb = query_emb['content'].squeeze(0).clone().detach().requires_grad_(True).unsqueeze(0)
 
 # Extract embeddings from the list of dictionaries
 doc_embeddings = [item['content'] for item in docs_tokenizer]
