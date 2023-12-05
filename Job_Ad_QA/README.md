@@ -1,4 +1,4 @@
-# Job Ad Q&A Model
+# Job Ad Q&A Model (POC Complete)
 The overall intention of the project is to develop a proof of concept Q&A Generative AI model using PYTorch and a little bit of the Hugging Face🤗 Transformers API.
 
 ## Table of Contents
@@ -40,4 +40,4 @@ Please run the components in the following order:
 3. **'Job_Ad_Q&A_Predictions_Scoring.py' (Run every time):**
     - Change folder into `cd .\predictions_scoring\`
     - This component is a little different to the other two. This is the component that actually provides the Q&A. A query can be parsed directly from the CLI via `argparse`
-    - Run the component by typing (change the query to suit your use case) `python '.\Job_Ad_Q&A_Predictions_Scoring.py' --query 'Write a job ad for a data scientist'`
+    - Run the component by typing (change the query to suit your use case) `python '.\Job_Ad_Q&A_Predictions_Scoring.py' --query 'Write a job ad for a data scientist'`. Please note that the query string 'Write a job ad for a data scientist' is the default string in the `argparse` code. If you'd like to to write any other job ad string, please call the query argument as is described above, or if you'd like to use the default simply type `python '.\Job_Ad_Q&A_Predictions_Scoring.py'` into the command line.
