@@ -12,9 +12,9 @@ Where:
   corresponds to the latent factors for item $i$
 - $Q^T$ is the transpose of matrix $Q$
 
-Multi Layer Perceptions are adept at establishing non-linear relationships (by way of the summed dot product between an input and weight + bias):<br> 
+Multi Layer Perceptrons are adept at establishing non-linear relationships (by way of the summed dot product between an input and weight + bias):<br> 
 
-$y=f(\sum_{i=1}^n(x_i.w_i)+b)$<br>
+$$y=f(\sum_{i=1}^n(x_i.w_i)+b)$$<br>
 
 Where:
 - $y$ is the output of the perceptron
