@@ -4,7 +4,7 @@ This project is a recommender model based on ecommerce orders data.
 ## On Neural Collaborative Filtering
 Whilst more traditional Matrix Factorisation techniques are adept at establishing linear relationships between variables by decomposing a user-item interaction matrix into the product of two lower-dimensional matrices, representing latent factors for users and items:<br>
 
-$R \approx P.Q^T$
+$$R \approx P.Q^T$$
 
 Where:
 - $P$ is a matrix of user latent factors, where each row $p_u$ corresponds to the latent factors for user $u$.
@@ -23,9 +23,9 @@ Where:
 - $w_i$ are the weights associated with the inputs
 - $b$ is the bias term
 
-The Neural Collaborative Filtering (NCF) technique is a hybrid between the aforementioned methods. In this respect, NCF can establish both linear and non-linear dynamical relationships between variables.
+The Neural Collaborative Filtering (NCF) technique is a hybrid between the aforementioned methods. In this respect, NCF can establish both linear and non-linear dynamical relationships between variables:
 
-$f(u, i) = \sigma(\text{MLP}(\text{Concatenate}(u, i)))$
+$$f(u, i) = \sigma(\text{MLP}(\text{Concatenate}(u, i)))$$
 
 Where:
 - $f(u, i)$: This is the output of the network, which is a function of the user embedding and the item embedding.
