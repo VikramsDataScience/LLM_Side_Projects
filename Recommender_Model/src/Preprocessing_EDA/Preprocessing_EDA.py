@@ -46,6 +46,7 @@ def sparse_matrix(order_ids, item_ids):
 
     # Save Sparse Matrix into a compressed Numpy format '.npz' for downstream consumption
     sp.save_npz(files_path / 'sparse_matrix_v0.0.1.npz', sp_matrix)
+    sparse_df.to_parquet(files_path / 'sparse_df.gz', compression='gzip')
     return sp_matrix
 
 # Perform preprocessing for Neural Collaborative Filtering and save Sparse Matrix for downstream consumption
