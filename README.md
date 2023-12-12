@@ -1,4 +1,4 @@
-# LLM Side Projects
+# Language Model Side Projects
 Hello! And, welcome to my language model side projects repo. 
 
 The intention of this repo is to showcase my learning journey in the world of language modeling. The projects showcased here are either built to the POC stage (and are designated somewhat complete), or they're in WIP. The projects are certainly not advanced, but are designed to showcase my continuing interest in exploring the beautiful world of AI.
