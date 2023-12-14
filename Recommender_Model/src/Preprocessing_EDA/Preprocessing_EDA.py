@@ -2,13 +2,18 @@ from os import path
 import pandas as pd
 from pathlib import Path
 from ydata_profiling import ProfileReport
-import numpy as np
 import scipy.sparse as sp
-from torch.utils.data import Dataset, DataLoader
+import yaml
 
-# Define file paths and any required global variables
-files_path = Path('C:/Sample Data/Recommender_data')
-preprocess_path = Path('C:/Users/Vikram Pande/LLM_Side_Projects/Recommender_Model/src/Preprocessing_EDA')
+# Define file paths, load the necesssary CSV files, and global variables
+config_path = Path('C:/Users/Vikram Pande/Side_Projects/Recommender_Model/src')
+
+with open(config_path / 'config.yml', 'r') as file:
+    global_vars = yaml.safe_load(file)
+
+files_path = Path(global_vars['files_path'])
+preprocess_path = Path(global_vars['preprocess_path'])
+model_ver = global_vars['model_ver']
 sparse_df = pd.DataFrame()
 
 # Read in the individual csv files, and store as separate Pandas Dataframes
@@ -48,7 +53,7 @@ def sparse_matrix(order_ids, item_ids, reordered):
     print(sp_matrix)
 
     # Save Sparse Matrix into a compressed Numpy format '.npz' for downstream consumption
-    sp.save_npz(files_path / 'sparse_matrix_v0.0.1.npz', sp_matrix)
+    sp.save_npz(files_path / f'sparse_matrix_{model_ver}.npz', sp_matrix)
     return sp_matrix
 
 # Perform preprocessing for Neural Collaborative Filtering and save Sparse Matrix for downstream consumption
