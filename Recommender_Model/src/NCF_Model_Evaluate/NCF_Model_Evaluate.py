@@ -6,7 +6,7 @@ import torch
 import sys
 import yaml
 
-# Define file paths, load the necesssary CSV files, and global variables
+# Load the file paths and global variables from YAML config file
 config_path = Path('C:/Users/Vikram Pande/Side_Projects/Recommender_Model/src')
 
 with open(config_path / 'config.yml', 'r') as file:
@@ -16,7 +16,7 @@ with open(config_path / 'config.yml', 'r') as file:
 sys.path.append(r'C:\Users\Vikram Pande\Side_Projects\Recommender_Model\src')
 from NCF_Architecture_config import NCF
 
-# Define file paths, load the necesssary CSV files, and declare global variables
+# Declare global variables from loaded YAML file
 model_ver = global_vars['model_ver']
 embedding_dim = global_vars['embedding_dim']
 files_path = Path(global_vars['files_path'])
@@ -32,6 +32,8 @@ num_products = sp_matrix.shape[1]
 
 # Load pretrained model and mount to GPU
 model = NCF(num_orders, num_products, embedding_dim)
-pretrained_model = torch.load(files_path / f'model_state_{model_ver}.pth')
-model.load_state_dict(pretrained_model)
+model.load_state_dict(torch.load(files_path / f'model_state_{model_ver}.pth'))
 model.to(device)
+
+# Commence evaluation step
+def evaluate(model, ):
