@@ -1,6 +1,8 @@
 model_ver: 'v0.0.1'
 embedding_dim: 20
-batch_size: 32
+batch_size: 1024 # Use base 2 numbers to modify batch sizes (i.e. 32, 64, 128, 256, 512, etc.)
 num_epochs: 20
+step_size: 2
+gamma: 0.1
 files_path: 'C:/Sample Data/Recommender_data'
 preprocess_path: 'C:/Users/Vikram Pande/LLM_Side_Projects/Recommender_Model/src/Preprocessing_EDA'
