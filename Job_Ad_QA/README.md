@@ -1,5 +1,5 @@
 # Job Ad Q&A Model (POC Complete)
-The overall intention of the project is to develop a proof of concept Q&A Generative AI model using PYTorch and a little bit of the Hugging Face🤗 Transformers API.
+The intention of the project is to develop a proof of concept Q&A AI model using PYTorch and a little bit of the Hugging Face🤗 Transformers API. This model isn't generative in nature, but rather uses Linear Matrix Factorisation to embed user queries into a semantic search that will return the top 5 most relevant job ads (model is trained on 50,000 job ads from SEEK) to the user query.
 
 ## Table of Contents
 - Project Overview
@@ -9,9 +9,9 @@ The overall intention of the project is to develop a proof of concept Q&A Genera
 ## Project Overview
 Please note that this project has been developed with an educational goal, rather than an attempt to develop an accurate model. The model employs Semantic/Similarity Search (scaled Dot Product) to attempt to answer user prompts (questions) related to displaying the content for job ads. It's entirely for education, and the scope of this model is more to showcase how such a model can be developed rather than an attempt to develop an accurate model.
 
-Another note to point out is the code is developed as components (and not notebooks). This is more of a personal preference, since I much prefer working with components than notebooks. Notebook performance with text data is notoriously slow and often crashes. Also, developing code in component form does make it much more efficient for moving into production!
+Another note to point out is the code is developed as modularised components (and not notebooks). This is more of a personal preference, since I much prefer working with components than notebooks. Notebook performance with text data is notoriously slow and often crashes. Also, developing code in component form does make it much more efficient for moving into production!
 
-On the note of production, if I have time, it's my hope to be able to develop a basic ML Pipeline using my local machine and Apache Airflow as a possible MLOps stack, since Airflow does allow a free local `pip` installation. Otherwise, in a real life scenario I would use host everything on the cloud with AzureML or SageMaker.
+On the note of production, in a business scenario I would host everything on the cloud with AzureML or SageMaker.
 
 ## Installation
 In order to use the Hugging Face🤗 Transformers API locally, you'll need to create a Virtual Environment. These are the steps:
