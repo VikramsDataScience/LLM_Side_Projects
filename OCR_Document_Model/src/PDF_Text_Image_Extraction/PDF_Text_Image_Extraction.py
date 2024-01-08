@@ -5,12 +5,25 @@ from torchvision import models, transforms
 from PIL import Image
 from pathlib import Path
 import yaml
+import logging
+
+logger = logging.getLogger('PDF_Text_Image_Extraction')
+logger.setLevel(logging.ERROR)
+error_handler = logging.StreamHandler()
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/PDF_Text_Image_Extraction_Error_Log.log'))
+error_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
 
 # Load the file paths and global variables from YAML config file
-config_path = Path('C:/Users/Vikram Pande/Side_Projects/OCR_Document_QA')
+try:
+    config_path = Path('C:/Users/Vikram Pande/Side_Projects/OCR_Document_Model')
 
-with open(config_path / 'config.yml', 'r') as file:
-    global_vars = yaml.safe_load(file)
+    with open(config_path / 'config.yml', 'r') as file:
+        global_vars = yaml.safe_load(file)
+except:
+    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 # If GPU is available, instantiate a device variable to use the GPU
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
