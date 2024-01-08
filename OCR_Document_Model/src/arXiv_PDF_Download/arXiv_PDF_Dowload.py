@@ -3,16 +3,29 @@ import os
 from urllib.parse import urlparse
 from pathlib import Path
 import yaml
+import logging
 
 # IMPORTANT N.B.: arXiv do have an official API. However, the response from the API is a form of XML called Atom. Since, I'm currently interested in developing OCR for PDF 
 # documents, I've elected for the manual implementation represented by the following component module by downloading the research papers directly from 
 # specific URLs based on their arXiv ID numbers (i.e. the 'start_id' and 'end_id' variables). However, it should be noted that Engineering best practice would dictate using the API
 
-# Load the file paths and global variables from YAML config file
-config_path = Path('C:/Users/Vikram Pande/Side_Projects/OCR_Document_QA')
+logger = logging.getLogger('arXiv_PDF_Download')
+logger.setLevel(logging.ERROR)
+error_handler = logging.StreamHandler()
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/arXiv_PDF_Download_Error_Log.log'))
+error_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
 
-with open(config_path / 'config.yml', 'r') as file:
-    global_vars = yaml.safe_load(file)
+# Load the file paths and global variables from YAML config file
+try:
+    config_path = Path('C:/Users/Vikram Pande/Side_Projects/OCR_Document_Model')
+
+    with open(config_path / 'config.yml', 'r') as file:
+        global_vars = yaml.safe_load(file)
+except:
+    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 # Declare global variables from config YAML file
 files_path = global_vars['files_path']
