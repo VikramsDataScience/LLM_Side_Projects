@@ -4,12 +4,25 @@ from pathlib import Path
 from ydata_profiling import ProfileReport
 import scipy.sparse as sp
 import yaml
+import logging
+
+logger = logging.getLogger('Preprocessing_EDA')
+logger.setLevel(logging.ERROR)
+error_handler = logging.StreamHandler()
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/Preprocessing_EDA_Error_Log.log'))
+error_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
 
 # Define file paths, load the necesssary CSV files, and global variables
-config_path = Path('C:/Users/Vikram Pande/Side_Projects/Recommender_Model/src')
-
-with open(config_path / 'config.yml', 'r') as file:
-    global_vars = yaml.safe_load(file)
+try:
+    config_path = Path('C:/Users/Vikram Pande/Side_Projects/Recommender_Model/src')
+    
+    with open(config_path / 'config.yml', 'r') as file:
+        global_vars = yaml.safe_load(file)
+except:
+    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 files_path = Path(global_vars['files_path'])
 preprocess_path = Path(global_vars['preprocess_path'])
