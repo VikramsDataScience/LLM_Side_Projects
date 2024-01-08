@@ -8,12 +8,25 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import sys
 import yaml
+import logging
+
+logger = logging.getLogger('NCF_Model_Evaluate')
+logger.setLevel(logging.ERROR)
+error_handler = logging.StreamHandler()
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/NCF_Model_Evaluate_Log.log'))
+error_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
 
 # Load the file paths and global variables from YAML config file
-config_path = Path('C:/Users/Vikram Pande/Side_Projects/Recommender_Model/src')
+try:
+    config_path = Path('C:/Users/Vikram Pande/Side_Projects/Recommender_Model/src')
 
-with open(config_path / 'config.yml', 'r') as file:
-    global_vars = yaml.safe_load(file)
+    with open(config_path / 'config.yml', 'r') as file:
+        global_vars = yaml.safe_load(file)
+except:
+    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 # Import NCF_Architecture module
 sys.path.append(global_vars['NCF_path'])
