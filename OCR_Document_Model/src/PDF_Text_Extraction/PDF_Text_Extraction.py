@@ -6,11 +6,12 @@ from PIL import Image
 from pathlib import Path
 import yaml
 import logging
+from tqdm.auto import tqdm
 
-logger = logging.getLogger('PDF_Text_Image_Extraction')
+logger = logging.getLogger('PDF_Text_Extraction')
 logger.setLevel(logging.ERROR)
 error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/PDF_Text_Image_Extraction_Error_Log.log'))
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/PDF_Text_Extraction_Error_Log.log'))
 error_handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 error_handler.setFormatter(formatter)
@@ -25,22 +26,21 @@ try:
 except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
-# If GPU is available, instantiate a device variable to use the GPU
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-# Declare global variables from config YAML file
+# Load global variables from config YAML file
 files_path = global_vars['files_path']
 start_id = global_vars['start_id']
 end_id = global_vars['end_id']
+extracted_text = global_vars['extracted_text_path']
 
-def pdf_text_extract(path):
-    doc = fitz.open(path)
+# Function to recursively open the PDFs with PyMuPDF, extract text and place into storage location
+def extract_text_from_pdf(pdf_path, text_path):
+    doc = fitz.open(pdf_path)
     text = ''
-    for page_num in range(doc.page_count):
+    
+    for page_num in tqdm(range(doc.page_count), desc='Text extraction progress'):
         page = doc[page_num]
         text += page.get_text()
-        print(text)
+        
     return text
 
-# Call function and recursively open the PDFs with PyMuPDF
-pdf_text_extract(f'{files_path}/0{start_id:.4f}.pdf')
+extract_text_from_pdf(f'{files_path}/0{start_id:.4f}.pdf', extracted_text)
