@@ -27,7 +27,7 @@ try:
 except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
-# Declare global variables from config YAML file
+# Load global variables from config YAML file
 files_path = global_vars['files_path']
 start_id = global_vars['start_id']
 end_id = global_vars['end_id']

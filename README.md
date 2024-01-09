@@ -1,4 +1,4 @@
-# Language Model Side Projects
+# Multi Modal AI Side Projects
 Hello! I'm Vikram and I'm a Data Scientist. Welcome to my language model side projects repo. 
 
 The intention of this repo is to showcase my learning journey in the world of Deep Learning (or AI, as its colloquially called nowadays). The projects showcased here are either built to the POC stage (at which point they're designated complete), or they're in WIP. The projects are certainly not advanced or intended to be accurate. But they're designed to showcase my learning journey as I playfully explore the beautiful world of AI.
