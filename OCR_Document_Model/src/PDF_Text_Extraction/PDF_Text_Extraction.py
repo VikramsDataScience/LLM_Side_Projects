@@ -1,8 +1,6 @@
-import pytesseract
-import torch
+from os import path, remove
+import json
 import fitz # PyMuPDF for PDF and image data extraction
-from torchvision import models, transforms
-from PIL import Image
 from pathlib import Path
 import yaml
 import logging
@@ -26,21 +24,38 @@ try:
 except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
-# Load global variables from config YAML file
+# Load global variables from config YAML file and declare local variables
 files_path = global_vars['files_path']
 start_id = global_vars['start_id']
 end_id = global_vars['end_id']
-extracted_text = global_vars['extracted_text_path']
+extracted_text_path = global_vars['extracted_text_path']
+id = start_id
 
-# Function to recursively open the PDFs with PyMuPDF, extract text and place into storage location
-def extract_text_from_pdf(pdf_path, text_path):
+# Function to recursively open the PDFs with PyMuPDF, extract text and save to storage
+def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
     text = ''
-    
-    for page_num in tqdm(range(doc.page_count), desc='Text extraction progress'):
+    for page_num in range(doc.page_count):
         page = doc[page_num]
         text += page.get_text()
         
+        # Declare JSON dictionary to store extracted text
+        extracted_text = {
+            'research_text': text
+        }
+
+        with open(Path(extracted_text_path) / 'extracted_text.json', 'a') as f:
+            json.dump(extracted_text, f)
+
     return text
 
-extract_text_from_pdf(f'{files_path}/0{start_id:.4f}.pdf', extracted_text)
+# Since the json.dump() call in the loop is an 'append' statement, if the file exists delete it. Otherwise, the json.dump() call will append the dictionary without limit (i.e. objects will duplicate)
+if path.exists(Path(extracted_text_path) / 'extracted_text.json'):
+    remove(Path(extracted_text_path) / 'extracted_text.json')
+
+# Iterate through the list of downloaded PDFs
+with tqdm(total=int((end_id - start_id) / 0.0001) + 1, desc='Text Extraction Progress') as pbar:
+    while id <= end_id:
+        extract_text_from_pdf(f'{files_path}/0{id:.4f}.pdf')
+        id += 0.0001
+        pbar.update(1)
