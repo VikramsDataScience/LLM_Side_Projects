@@ -1,5 +1,5 @@
-from os import listdir
-from os.path import join, splitext
+from os import path, remove
+import json
 import fitz # PyMuPDF for PDF and image data extraction
 from pathlib import Path
 import yaml
@@ -27,6 +27,7 @@ except:
 # Load global variables from config YAML file and declare local variables
 files_path = global_vars['files_path']
 start_id = global_vars['start_id']
+end_id = global_vars['end_id']
 extracted_text_path = global_vars['extracted_text_path']
 id = start_id
 
@@ -37,19 +38,24 @@ def extract_text_from_pdf(pdf_path):
     for page_num in range(doc.page_count):
         page = doc[page_num]
         text += page.get_text()
-    doc.close()
+        
+        # Declare JSON dictionary to store extracted text
+        extracted_text = {
+            'research_text': text
+        }
+
+        with open(Path(extracted_text_path) / 'extracted_text.json', 'a') as f:
+            json.dump(extracted_text, f)
+
     return text
 
-# Iterate through the list of downloaded PDFs
-for pdf_file in tqdm(listdir(files_path), desc='Text PDF Extraction Progress'):
-    try:
-        pdf_text = extract_text_from_pdf(f'{files_path}/0{id:.4f}.pdf')
-    except fitz.fitz.FileNotFoundError: # Handle any FileNotFoundErrors
-        pass
-    else:
-        # Save extracted text to a text file
-        output_text_file = join(extracted_text_path, f'{splitext(pdf_file)[0]}_text.txt')
-        with open(output_text_file, 'w', encoding='utf-8') as text_file:
-            text_file.write(pdf_text)
+# Since the json.dump() call in the loop is an 'append' statement, if the file exists delete it. Otherwise, the json.dump() call will append the dictionary without limit (i.e. objects will duplicate)
+if path.exists(Path(extracted_text_path) / 'extracted_text.json'):
+    remove(Path(extracted_text_path) / 'extracted_text.json')
 
-    id += 0.0001
+# Iterate through the list of downloaded PDFs
+with tqdm(total=int((end_id - start_id) / 0.0001) + 1, desc='Text Extraction Progress') as pbar:
+    while id <= end_id:
+        extract_text_from_pdf(f'{files_path}/0{id:.4f}.pdf')
+        id += 0.0001
+        pbar.update(1)
