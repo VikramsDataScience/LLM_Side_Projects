@@ -29,5 +29,5 @@ except:
 files_path = global_vars['files_path']
 start_id = global_vars['start_id']
 end_id = global_vars['end_id']
-extracted_images = global_vars['extracted_images_path']
+extracted_images_path = global_vars['extracted_images_path']
 
