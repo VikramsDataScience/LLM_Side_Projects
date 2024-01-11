@@ -1,6 +1,5 @@
 model_ver: 'v0.0.1'
 start_id: 0704.0001
-end_id: 0704.0004 # Due to rounding issues in the 'PDF_Text_Extraction' module, please ensure this max value is 0.0001 less than the max (i.e. if max_value == 0704.0500, then end_id: 0704.0499)
 files_path: 'C:/Sample Data/OCR_arxiv_data'
 extracted_text_path: 'C:/Sample Data/OCR_arxiv_data/Extracted_text'
 extracted_images_path: 'C:/Sample Data/OCR_arxiv_data/Extracted_images'
