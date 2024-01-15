@@ -41,10 +41,10 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 # Iterate through the list of downloaded PDFs
-for pdf_file in tqdm(listdir(files_path), desc='Text PDF Extraction Progress'):
+for pdf_file in tqdm(listdir(files_path), desc='PDF Text Extraction Progress'):
     try:
         pdf_text = extract_text_from_pdf(f'{files_path}/0{id:.4f}.pdf')
-    except fitz.fitz.FileNotFoundError: # Handle any FileNotFoundErrors
+    except fitz.fitz.FileNotFoundError: # Handle any FileNotFoundErrors caused by research papers being removed from arXiv server
         pass
     else:
         # Save extracted text to a text file
