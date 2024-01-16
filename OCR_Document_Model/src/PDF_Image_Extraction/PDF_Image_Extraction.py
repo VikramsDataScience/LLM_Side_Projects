@@ -1,6 +1,4 @@
 import fitz # PyMuPDF for PDF and image data extraction
-from torchvision import transforms
-import PIL
 from PIL import Image
 from pathlib import Path
 from os import listdir, path, makedirs
@@ -33,21 +31,6 @@ start_id = global_vars['start_id']
 extracted_images_path = global_vars['extracted_images_path']
 id = start_id
 
-# Function to preprocess image using PyTorch transforms
-def preprocess_image(image_path):
-    try:
-        image = Image.open(image_path).convert('RGB')
-    except PIL.UnidentifiedImageError:
-        pass
-    else:
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        input_tensor = transform(image)
-        return input_tensor.unsqueeze(0)
-
 def extract_images_from_pdf(files_path, extracted_images_path):
     pdf_document = fitz.open(files_path)
     for page_number in range(pdf_document.page_count):
@@ -59,20 +42,22 @@ def extract_images_from_pdf(files_path, extracted_images_path):
             base_image = pdf_document.extract_image(img_id)
             image_bytes = base_image['image']
             image = Image.open(io.BytesIO(image_bytes))
+
+            # If image is CMYK, convert to RGB
+            if image.mode == 'CMYK':
+                image = image.convert('RGB')
+            
             # Save to storage location (each image will represent one page)
             pdf_filename = path.splitext(path.basename(files_path))[0] # Extract filename without .pdf extension
-            image.save(open(Path(extracted_images_path) / f'docid_{pdf_filename}_page_{page_number + 1}_img_{img_index}.png', 'w'))
+            image.save(open(Path(extracted_images_path) / f'docid_{pdf_filename}_page_{page_number + 1}_img_{img_index}.png', 'wb'))
 
-# Iterate and load PDF documents, read all pages in document & extract images
+# Recursively load PDF documents, read all pages, and extract & store images from all the PDFs
 for pdf_file in tqdm(listdir(files_path), desc='PDF Image Extraction Progress'):
-    # If the output folder doesn't exist, create folder
+    # If the output folder doesn't exist, create the folder
     if not path.exists(extracted_images_path):
-        makedirs(extracted_images_path)
-    
+        makedirs(extracted_images_path)   
     try:
-        id = start_id
-        pdf_images = extract_images_from_pdf(f'{files_path}/0{id:.4f}.pdf', extracted_images_path)
+        extract_images_from_pdf(Path(f'{files_path}/0{id:.4f}.pdf'), extracted_images_path)
     except fitz.fitz.FileNotFoundError: # Handle any FileNotFoundErrors caused by research papers being removed from arXiv server
         pass
-    else:
-        id += 0.0001    
+    id += 0.0001

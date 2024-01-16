@@ -1,5 +1,6 @@
 model_ver: 'v0.0.1'
 start_id: 0704.0001
+end_id: 0704.0500
 files_path: 'C:/Sample Data/OCR_arxiv_data'
 extracted_text_path: 'C:/Sample Data/OCR_arxiv_data/Extracted_text'
 extracted_images_path: 'C:/Sample Data/OCR_arxiv_data/Extracted_images'
