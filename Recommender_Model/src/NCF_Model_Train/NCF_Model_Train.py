@@ -86,6 +86,8 @@ num_products = sp_matrix.shape[1]
 model = NCF(num_orders, num_products, embedding_dim)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# IMPORTANT N.B.: CONSIDER USING THE LEARNING RATE FINDER (https://pytorch-lightning.readthedocs.io/en/1.4.9/advanced/lr_finder.html) TO FIND AND PLOT THE MOST OPTIMAL LRs
 # 'step_size' refers to adjusting learning rate by the number of epochs multiplied by 'gamma' (i.e. step_size=2, gamma=0.1 means changing LR every 2 x 0.1 = 0.2 epochs)
 scheduler = StepLR(optimizer, step_size=step_size, gamma=gamma)
 scaler = GradScaler()
