@@ -27,9 +27,8 @@ except:
 
 # Load global variables from config YAML file
 files_path = global_vars['files_path']
-start_id = global_vars['start_id']
+id = global_vars['start_id']
 extracted_images_path = global_vars['extracted_images_path']
-id = start_id
 
 def extract_images_from_pdf(files_path, extracted_images_path):
     pdf_document = fitz.open(files_path)
@@ -47,15 +46,15 @@ def extract_images_from_pdf(files_path, extracted_images_path):
             if image.mode == 'CMYK':
                 image = image.convert('RGB')
             
-            # Save to storage location (each image will represent one page)
+            # Save to storage location
             pdf_filename = path.splitext(path.basename(files_path))[0] # Extract filename without .pdf extension
-            image.save(open(Path(extracted_images_path) / f'docid_{pdf_filename}_page_{page_number + 1}_img_{img_index}.png', 'wb'))
+            image.save(open(Path(extracted_images_path) / f'docID_{pdf_filename}_page_{page_number + 1}_img_{img_index}.png', 'wb'))
 
 # Recursively load PDF documents, read all pages, and extract & store images from all the PDFs
 for pdf_file in tqdm(listdir(files_path), desc='PDF Image Extraction Progress'):
     # If the output folder doesn't exist, create the folder
     if not path.exists(extracted_images_path):
-        makedirs(extracted_images_path)   
+        makedirs(extracted_images_path)
     try:
         extract_images_from_pdf(Path(f'{files_path}/0{id:.4f}.pdf'), extracted_images_path)
     except fitz.fitz.FileNotFoundError: # Handle any FileNotFoundErrors caused by research papers being removed from arXiv server
