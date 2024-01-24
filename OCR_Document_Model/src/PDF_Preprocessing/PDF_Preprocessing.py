@@ -1,5 +1,6 @@
 import cv2 # Run 'pip install opencv-python scikit-image' to install OpenCV and scikit-image
 from os import path, listdir, makedirs
+from os.path import dirname
 import numpy as np
 from skimage import io, color, exposure, morphology, transform
 from pathlib import Path
@@ -27,6 +28,7 @@ except:
 
 # Load global variables from config YAML file
 files_path = global_vars['files_path']
+id = global_vars['start_id']
 extracted_images_path = global_vars['extracted_images_path']
 preprocessed_images_path = global_vars['preprocessed_images_path']
 preprocessed_image_width = global_vars['preprocessed_image_width']
@@ -36,7 +38,7 @@ preprocessed_image_height = global_vars['preprocessed_image_height']
 class ImagePreprocessing:
     @staticmethod # Use '@staticmethod' decorator to remove any dependencies on the instance state (i.e. remove the requirement for a 'self' parameter in the class)
     def load_image(image_path):
-        return cv2.imread(image_path)
+        return cv2.imread(str(image_path))
 
     @staticmethod
     def rescale_image(image, new_width, new_height):
@@ -174,6 +176,10 @@ class ImagePreprocessing:
         Returns:
         numpy.ndarray: Thresholded image.
         """
+        # If image is not 8-bit single-channel, recast the data type to apply adaptive threshold
+        if image.dtype != np.uint8:
+            image = image.astype(np.uint8)
+
         return cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 
     @staticmethod
@@ -254,14 +260,12 @@ def preprocess_and_save(image_path, output_folder):
     preprocessed_image = ImgPreprocess.rotate_image(preprocessed_image)
 
     # Save preprocessed images
-    output_path = path.join(Path(output_folder), '.png')
-    cv2.imwrite(preprocessed_image, output_path)
+    output_path = path.join(Path(output_folder), Path(f'{files_path}/docID_0{id:04f}.png')) #Path(f'{files_path}/docID_0{id:04f}_page_{}_img_{}.png'))
+    cv2.imwrite(str(output_path), preprocessed_image)
 
 ############# LOOP THROUGH IMAGE PREPROCESSING STEPS FOR THE EXTRACTED IMAGES #############
-for image in tqdm(listdir(extracted_images_path), desc='Image Preprocessing Progress'):
-    # If the output folder doesn't exist, create the folder
-    if not path.exists(preprocessed_images_path):
-        makedirs(preprocessed_images_path)
-
-    preprocess_and_save(image, preprocessed_images_path)
+for page_number in listdir(extracted_images_path):
     
+    page_path = Path(path.join(extracted_images_path, page_number))
+    preprocess_and_save(page_path, preprocessed_images_path)
+    id += 0.0001
