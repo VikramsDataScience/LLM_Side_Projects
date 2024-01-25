@@ -1,4 +1,5 @@
 import cv2 # Run 'pip install opencv-python scikit-image' to install OpenCV and scikit-image
+from PIL import Image
 from os import path, listdir, makedirs
 from os.path import dirname
 import numpy as np
@@ -38,7 +39,25 @@ preprocessed_image_height = global_vars['preprocessed_image_height']
 class ImagePreprocessing:
     @staticmethod # Use '@staticmethod' decorator to remove any dependencies on the instance state (i.e. remove the requirement for a 'self' parameter in the class)
     def load_image(image_path):
-        return cv2.imread(str(image_path))
+        """
+        Load an image from the specified file path.
+
+        Parameters:
+        - image_path (str): The file path to the image.
+
+        Returns:
+        - numpy.ndarray: A NumPy array representing the loaded image.
+
+        Raises:
+        - FileNotFoundError: If the specified file path does not exist.
+        - Exception: If there is an error during the image loading process.
+
+        Note:
+        The function uses the OpenCV library to read the image with the flag cv2.IMREAD_UNCHANGED,
+        which loads the image as is, including the alpha channel for transparency if present.
+        """
+        #return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+        return Image.open(image_path)
 
     @staticmethod
     def rescale_image(image, new_width, new_height):
@@ -53,6 +72,17 @@ class ImagePreprocessing:
         Returns:
         numpy.ndarray: Rescaled image.
         """
+        image = np.array(image)
+
+        if not isinstance(image, np.ndarray):
+            raise ValueError("Input 'image' must be a numpy array.")
+        
+        if len(image.shape) == 2:
+            image = np.expand_dims(image, axis=-1)
+
+        if len(image.shape) != 3:
+            raise ValueError("Input 'image' must be a 3-dimensional array (height, width, channels).")
+        
         return cv2.resize(image, (new_width, new_height))
 
     @staticmethod
@@ -83,6 +113,16 @@ class ImagePreprocessing:
         Returns:
         numpy.ndarray: Grayscale image.
         """
+        # If the image is already in grayscale or has a single channel
+        if len(image.shape) == 2 or image.shape[2] == 1:
+            return image
+        # Convert 3-channel image to grayscale
+        elif image.shape[2] == 3:
+            return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Convert 4-channel BGRA to grayscale ignoring the alpha channel
+        elif image.shape[2] == 4:
+            return cv2.cvtColor(image[:, :, :3], cv2.COLOR_BGR2GRAY)
+        
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     @staticmethod
@@ -245,6 +285,8 @@ ImgPreprocess = ImagePreprocessing()
 def preprocess_and_save(image_path, output_folder):
     image = ImgPreprocess.load_image(image_path)
 
+    print('IMAGE PATH:', image_path)
+
     # Apply preprocessing steps in order
     preprocessed_image = ImgPreprocess.rescale_image(image, new_width=preprocessed_image_width, new_height=preprocessed_image_height)
     preprocessed_image = ImgPreprocess.reduce_noise(preprocessed_image)
@@ -260,12 +302,23 @@ def preprocess_and_save(image_path, output_folder):
     preprocessed_image = ImgPreprocess.rotate_image(preprocessed_image)
 
     # Save preprocessed images
-    output_path = path.join(Path(output_folder), Path(f'{files_path}/docID_0{id:04f}.png')) #Path(f'{files_path}/docID_0{id:04f}_page_{}_img_{}.png'))
-    cv2.imwrite(str(output_path), preprocessed_image)
+    output_folder = path.join(Path(output_folder), Path(f'{files_path}/docID_0{id:04f}.png'))
+    #cv2.imwrite(str(output_path), preprocessed_image)
+    pil_image = Image.fromarray(preprocessed_image)
+    # Convert back to image from numpy array and to grayscale 'convert('L')' for Tesseract
+    pil_image = pil_image.convert('RGB')
+    try:
+        pil_image.save(output_folder)
+        print('SAVING IMAGE: ', output_folder)
+    except Exception as e:
+        print(f'ERROR SAVING IMAGE: {e}')
 
 ############# LOOP THROUGH IMAGE PREPROCESSING STEPS FOR THE EXTRACTED IMAGES #############
-for page_number in listdir(extracted_images_path):
-    
-    page_path = Path(path.join(extracted_images_path, page_number))
+for page_filename in tqdm(listdir(extracted_images_path), desc='Image Preprocessing Progress'):
+    if not path.exists(preprocessed_images_path):
+        makedirs(preprocessed_images_path)
+
+    page_path = Path(path.join(extracted_images_path, page_filename))
+    # Extract page number from the filename
+    page_number = page_filename.split('_')[-1].split('.')[0]
     preprocess_and_save(page_path, preprocessed_images_path)
-    id += 0.0001
