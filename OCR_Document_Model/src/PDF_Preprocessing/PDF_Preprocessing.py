@@ -1,7 +1,6 @@
 import cv2 # Run 'pip install opencv-python scikit-image' to install OpenCV and scikit-image
 from PIL import Image
-from os import path, listdir, makedirs
-from os.path import dirname
+from os import listdir
 import numpy as np
 from skimage import io, color, exposure, morphology, transform
 from pathlib import Path
@@ -35,6 +34,10 @@ preprocessed_images_path = global_vars['preprocessed_images_path']
 preprocessed_image_width = global_vars['preprocessed_image_width']
 preprocessed_image_height = global_vars['preprocessed_image_height']
 
+# Create a preprocessed images folder if it doesn't exist
+preprocessed_images_path = Path(preprocessed_images_path)
+preprocessed_images_path.mkdir(parents=True, exist_ok=True)
+
 ############# DEFINE IMAGE PREPROCESSING CLASS WITH ASSOCIATED METHODS #############
 class ImagePreprocessing:
     @staticmethod # Use '@staticmethod' decorator to remove any dependencies on the instance state (i.e. remove the requirement for a 'self' parameter in the class)
@@ -56,7 +59,6 @@ class ImagePreprocessing:
         The function uses the OpenCV library to read the image with the flag cv2.IMREAD_UNCHANGED,
         which loads the image as is, including the alpha channel for transparency if present.
         """
-        #return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
         return Image.open(image_path)
 
     @staticmethod
@@ -279,13 +281,12 @@ class ImagePreprocessing:
         """
         return transform.rotate(image, angle=angle)
 
-############# INTANTIATE CLASS AND CALL IMAGE PREPROCESSING STEPS IN THEIR RESPECTIVE ORDER #############
+############# INTANTIATE THE CLASS AND CALL IMAGE PREPROCESSING METHODS IN THEIR RESPECTIVE ORDER #############
 ImgPreprocess = ImagePreprocessing()
 
 def preprocess_and_save(image_path, output_folder):
     image = ImgPreprocess.load_image(image_path)
-
-    print('IMAGE PATH:', image_path)
+    file_name = Path(image_path).name
 
     # Apply preprocessing steps in order
     preprocessed_image = ImgPreprocess.rescale_image(image, new_width=preprocessed_image_width, new_height=preprocessed_image_height)
@@ -302,23 +303,18 @@ def preprocess_and_save(image_path, output_folder):
     preprocessed_image = ImgPreprocess.rotate_image(preprocessed_image)
 
     # Save preprocessed images
-    output_folder = path.join(Path(output_folder), Path(f'{files_path}/docID_0{id:04f}.png'))
-    #cv2.imwrite(str(output_path), preprocessed_image)
+    output_folder = Path(output_folder) / file_name
     pil_image = Image.fromarray(preprocessed_image)
-    # Convert back to image from numpy array and to grayscale 'convert('L')' for Tesseract
-    pil_image = pil_image.convert('RGB')
+    # Convert back to image from numpy array and to grayscale 'convert('L')' for Tesseract. Or 'convert('RGB')' to convert array to RGB
+    pil_image = pil_image.convert('L')
     try:
         pil_image.save(output_folder)
-        print('SAVING IMAGE: ', output_folder)
     except Exception as e:
         print(f'ERROR SAVING IMAGE: {e}')
 
 ############# LOOP THROUGH IMAGE PREPROCESSING STEPS FOR THE EXTRACTED IMAGES #############
 for page_filename in tqdm(listdir(extracted_images_path), desc='Image Preprocessing Progress'):
-    if not path.exists(preprocessed_images_path):
-        makedirs(preprocessed_images_path)
-
-    page_path = Path(path.join(extracted_images_path, page_filename))
+    page_path = Path(extracted_images_path) / page_filename
     # Extract page number from the filename
     page_number = page_filename.split('_')[-1].split('.')[0]
     preprocess_and_save(page_path, preprocessed_images_path)
