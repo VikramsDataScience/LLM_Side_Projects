@@ -1,4 +1,4 @@
-#  Q&A model based on research papers from arXiv in PDF (WIP)
+#  Optical Character Recognition (OCR) model based on research papers from arXiv in PDF (WIP)
 
 
 # Possible use cases

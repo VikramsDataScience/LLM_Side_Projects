@@ -2,7 +2,7 @@ import cv2 # Run 'pip install opencv-python scikit-image' to install OpenCV and 
 from PIL import Image
 from os import listdir
 import numpy as np
-from skimage import io, color, exposure, morphology, transform
+from skimage import exposure, transform
 from pathlib import Path
 import yaml
 import logging
@@ -33,6 +33,8 @@ extracted_images_path = global_vars['extracted_images_path']
 preprocessed_images_path = global_vars['preprocessed_images_path']
 preprocessed_image_width = global_vars['preprocessed_image_width']
 preprocessed_image_height = global_vars['preprocessed_image_height']
+scale_x = global_vars['scale_x']
+scale_y = global_vars['scale_y']
 
 # Create a preprocessed images folder if it doesn't exist
 preprocessed_images_path = Path(preprocessed_images_path)
@@ -62,11 +64,13 @@ class ImagePreprocessing:
         return Image.open(image_path)
 
     @staticmethod
-    def rescale_image(image, new_width, new_height):
+    def rescale_image(image, new_width, new_height, fx, fy):
         """
         Rescales the input image to the specified width and height.
 
         Parameters:
+        - fx: To maintain the aspect ratio and preservation of the display quality scale up/down the x-axis
+        - fy: To maintain the aspect ratio and preservation of the display quality scale up/down the y-axis
         - image (numpy.ndarray): Input image.
         - new_width (int): Width of the rescaled image.
         - new_height (int): Height of the rescaled image.
@@ -85,7 +89,8 @@ class ImagePreprocessing:
         if len(image.shape) != 3:
             raise ValueError("Input 'image' must be a 3-dimensional array (height, width, channels).")
         
-        return cv2.resize(image, (new_width, new_height))
+        # Use 'INTER_LINEAR' as a general purpose interpolation technique for all resized images
+        return cv2.resize(image, (new_width, new_height), fx, fy, interpolation=cv2.INTER_LINEAR)
 
     @staticmethod
     def reduce_noise(image):
@@ -146,7 +151,7 @@ class ImagePreprocessing:
         return cv2.Canny(image, lower_threshold, upper_threshold)
 
     @staticmethod
-    def apply_threshold(image, threshold_value=128):
+    def apply_threshold(image, threshold_value=0):
         """
         Applies a fixed-level threshold to each array element.
 
@@ -240,24 +245,11 @@ class ImagePreprocessing:
         return cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
 
     @staticmethod
-    def resample_image(image, new_width, new_height):
-        """
-        Resamples the input image to the specified dimensions using interpolation.
-
-        Parameters:
-        - image (numpy.ndarray): Input image.
-        - new_width (int): Width of the resampled image.
-        - new_height (int): Height of the resampled image.
-
-        Returns:
-        numpy.ndarray: Resampled image.
-        """
-        return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
-
-    @staticmethod
     def normalize_image(image):
         """
-        Normalizes pixel values of the input image to the range [0, 1].
+        Apply a distance transform (such as Euclidean L2 distance) which will calculate the distance to the nearest zero pixel 
+        for each pixel in the image. Perform normalization of pixel values of the input image to the range [0, 1].
+        Convert the distance transform back to unsigned 8-bit integer.
 
         Parameters:
         - image (numpy.ndarray): Input image.
@@ -265,12 +257,18 @@ class ImagePreprocessing:
         Returns:
         numpy.ndarray: Normalized image with pixel values in the range [0, 1].
         """
-        return image.astype(np.float32) / 255.0
+        image = cv2.distanceTransform(image, cv2.DIST_L2, 5)
+        image = cv2.normalize(image, image, 0, 1.0, cv2.NORM_MINMAX)
+        image = (image * 255).astype('uint8')
+
+        # Perform and return the threshold distance transform using Otsu's method
+        return cv2.threshold(image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
     @staticmethod
     def rotate_image(image, angle=15):
         """
-        Rotate the given image by the specified angle.
+        Rotate the given image by the specified angle. This is useful to bring text into horizontal alignment for the OCR engine.
+        If the text isn't horizontally aligned, the OCR engine may not be able to identify the text accurately.
 
         Parameters:
         - image: The input image.
@@ -289,18 +287,17 @@ def preprocess_and_save(image_path, output_folder):
     file_name = Path(image_path).name
 
     # Apply preprocessing steps in order
-    preprocessed_image = ImgPreprocess.rescale_image(image, new_width=preprocessed_image_width, new_height=preprocessed_image_height)
+    preprocessed_image = ImgPreprocess.rescale_image(image, fx=scale_x, fy=scale_y, new_width=preprocessed_image_width, new_height=preprocessed_image_height)
     preprocessed_image = ImgPreprocess.reduce_noise(preprocessed_image)
     preprocessed_image = ImgPreprocess.convert_to_grayscale(preprocessed_image)
     preprocessed_image = ImgPreprocess.edge_detection(preprocessed_image)
-    preprocessed_image = ImgPreprocess.apply_threshold(preprocessed_image)
-    preprocessed_image = ImgPreprocess.enhance_contrast(preprocessed_image)
+    # preprocessed_image = ImgPreprocess.apply_threshold(preprocessed_image)
+    #preprocessed_image = ImgPreprocess.enhance_contrast(preprocessed_image)
     preprocessed_image = ImgPreprocess.deskew_image(preprocessed_image)
     preprocessed_image = ImgPreprocess.apply_adaptive_threshold(preprocessed_image)
     preprocessed_image = ImgPreprocess.localize_text(preprocessed_image)
-    preprocessed_image = ImgPreprocess.resample_image(preprocessed_image, new_width=preprocessed_image_width, new_height=preprocessed_image_height)
     preprocessed_image = ImgPreprocess.normalize_image(preprocessed_image)
-    preprocessed_image = ImgPreprocess.rotate_image(preprocessed_image)
+    # preprocessed_image = ImgPreprocess.rotate_image(preprocessed_image)
 
     # Save preprocessed images
     output_folder = Path(output_folder) / file_name

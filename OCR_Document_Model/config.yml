@@ -5,5 +5,7 @@ files_path: 'C:/Sample Data/OCR_arxiv_data'
 extracted_text_path: 'C:/Sample Data/OCR_arxiv_data/Extracted_text'
 extracted_images_path: 'C:/Sample Data/OCR_arxiv_data/Extracted_images'
 preprocessed_images_path: 'C:/Sample Data/OCR_arxiv_data/Preprocessed_images'
-preprocessed_image_width: 224 #800
-preprocessed_image_height: 224 #600
+preprocessed_image_width: 224 #224
+preprocessed_image_height: 224 #224
+scale_x: 1.2
+scale_y: 1.2
