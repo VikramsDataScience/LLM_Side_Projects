@@ -24,7 +24,8 @@ except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 # Load global variables from config YAML file
-files_path = global_vars['files_path']
+preprocessed_images_path = global_vars['preprocessed_images_path']
+extracted_images_path = global_vars['extracted_images_path']
 
 ############# PERFORM OCR #############
 # Function to perform OCR using Tesseract on an image
@@ -32,3 +33,4 @@ def perform_ocr(image_path):
     image = Image.open(image_path)
     text = pytesseract.image_to_string(image)
     return text
+

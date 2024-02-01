@@ -1,5 +1,6 @@
 import cv2 # Run 'pip install opencv-python scikit-image' to install OpenCV and scikit-image
 from PIL import Image
+import imutils
 from os import listdir
 import numpy as np
 from skimage import exposure, transform
@@ -151,7 +152,7 @@ class ImagePreprocessing:
         return cv2.Canny(image, lower_threshold, upper_threshold)
 
     @staticmethod
-    def apply_threshold(image, threshold_value=0):
+    def apply_threshold(image):
         """
         Applies a fixed-level threshold to each array element.
 
@@ -173,21 +174,28 @@ class ImagePreprocessing:
         Returns:
         The computed threshold value if Otsu's or Triangle methods are used.
         """
-        _, binary_image = cv2.threshold(image, threshold_value, 255, cv2.THRESH_BINARY)
+        binary_image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
         return binary_image
-
+    
     @staticmethod
-    def enhance_contrast(image):
+    def normalize_image(image):
         """
-        Enhances the contrast of the input image using histogram equalization.
+        Apply a distance transform (such as Euclidean L2 distance) which will calculate the distance to the nearest zero pixel 
+        for each pixel in the image. Perform normalization of pixel values of the input image to the range [0, 1].
+        Convert the distance transform back to unsigned 8-bit integer.
 
         Parameters:
         - image (numpy.ndarray): Input image.
 
         Returns:
-        numpy.ndarray: Image with enhanced contrast.
+        numpy.ndarray: Normalized image with pixel values in the range [0, 1].
         """
-        return exposure.equalize_hist(image)
+        image = cv2.distanceTransform(image, cv2.DIST_L2, 5)
+        image = cv2.normalize(image, image, 0, 1.0, cv2.NORM_MINMAX)
+        image = (image * 255).astype('uint8')
+
+        # Perform and return the threshold distance transform using Otsu's method
+        return cv2.threshold(image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
     @staticmethod
     def deskew_image(image):
@@ -230,7 +238,7 @@ class ImagePreprocessing:
         return cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 
     @staticmethod
-    def localize_text(image, kernel_size=(5,5)):
+    def localize_text(image):
         """
         Localizes text in the input image using morphological operations.
 
@@ -241,28 +249,46 @@ class ImagePreprocessing:
         Returns:
         numpy.ndarray: Image with localized text.
         """
-        kernel = np.ones(kernel_size, np.uint8)
-        return cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
-
+        # The getStructuringElement() operation denoises elements and disconnects connected blobs on the open operation (i.e. cv2.MORPH_OPEN)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+    
     @staticmethod
-    def normalize_image(image):
+    def image_contours(image, extracted_image):
         """
-        Apply a distance transform (such as Euclidean L2 distance) which will calculate the distance to the nearest zero pixel 
-        for each pixel in the image. Perform normalization of pixel values of the input image to the range [0, 1].
-        Convert the distance transform back to unsigned 8-bit integer.
-
-        Parameters:
-        - image (numpy.ndarray): Input image.
-
-        Returns:
-        numpy.ndarray: Normalized image with pixel values in the range [0, 1].
+        Extract contours in a binary image by isolating the foreground blobs. Find all the contours (characters and noise)
+        and perform a filter to only keep those that are 35px wide and 100px tall.
         """
-        image = cv2.distanceTransform(image, cv2.DIST_L2, 5)
-        image = cv2.normalize(image, image, 0, 1.0, cv2.NORM_MINMAX)
-        image = (image * 255).astype('uint8')
+        contours = cv2.findContours(image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = imutils.grab_contours(contours)
+        chars = []
 
-        # Perform and return the threshold distance transform using Otsu's method
-        return cv2.threshold(image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+        for c in contours:
+            # Compute bounding box of the contour
+            (x, y, w, h) = cv2.boundingRect(c)
+
+            # Perform check to see if contour is at least 35px wide & 100px tall. If so, consider it a digit
+            if w >= 35 and h >= 100:
+                chars.append(c)
+
+        if len(chars) > 0:
+            # Compute the convex hull of the characters    
+            chars = np.vstack([chars[i] for i in range(0, len(chars))])
+            hull = cv2.convexHull(chars)
+
+            # Allocate memory for the convex hull mask, draw the convex hull as a mask and enlarge via dilation
+            extracted_image = np.array(extracted_image)
+            mask = np.zeros(extracted_image.shape[:2], dtype='uint8')
+            cv2.drawContours(mask, [hull], -1, 255, -1)
+            mask = cv2.dilate(mask, None, iterations=2)
+
+            # To resolve any assertion errors convert to unsigned 8-bit integer
+            mask = mask.astype(np.uint8)
+            mask = cv2.resize(mask, (image.shape[1], image.shape[0]))
+            result = cv2.bitwise_and(image, image, mask=mask)     
+            return result
+        else:
+            return image
 
     @staticmethod
     def rotate_image(image, angle=15):
@@ -279,7 +305,7 @@ class ImagePreprocessing:
         """
         return transform.rotate(image, angle=angle)
 
-############# INTANTIATE THE CLASS AND CALL IMAGE PREPROCESSING METHODS IN THEIR RESPECTIVE ORDER #############
+############# INTANTIATE THE CLASS AND CALL IMAGE PREPROCESSING METHODS IN SYNCHRONOUS PIPELINE ORDER #############
 ImgPreprocess = ImagePreprocessing()
 
 def preprocess_and_save(image_path, output_folder):
@@ -291,18 +317,18 @@ def preprocess_and_save(image_path, output_folder):
     preprocessed_image = ImgPreprocess.reduce_noise(preprocessed_image)
     preprocessed_image = ImgPreprocess.convert_to_grayscale(preprocessed_image)
     preprocessed_image = ImgPreprocess.edge_detection(preprocessed_image)
-    # preprocessed_image = ImgPreprocess.apply_threshold(preprocessed_image)
-    #preprocessed_image = ImgPreprocess.enhance_contrast(preprocessed_image)
+    preprocessed_image = ImgPreprocess.apply_threshold(preprocessed_image)
+    preprocessed_image = ImgPreprocess.normalize_image(preprocessed_image)
     preprocessed_image = ImgPreprocess.deskew_image(preprocessed_image)
     preprocessed_image = ImgPreprocess.apply_adaptive_threshold(preprocessed_image)
     preprocessed_image = ImgPreprocess.localize_text(preprocessed_image)
-    preprocessed_image = ImgPreprocess.normalize_image(preprocessed_image)
+    preprocessed_image = ImgPreprocess.image_contours(preprocessed_image, extracted_image=image)
     # preprocessed_image = ImgPreprocess.rotate_image(preprocessed_image)
 
     # Save preprocessed images
     output_folder = Path(output_folder) / file_name
-    pil_image = Image.fromarray(preprocessed_image)
     # Convert back to image from numpy array and to grayscale 'convert('L')' for Tesseract. Or 'convert('RGB')' to convert array to RGB
+    pil_image = Image.fromarray(preprocessed_image)
     pil_image = pil_image.convert('L')
     try:
         pil_image.save(output_folder)
