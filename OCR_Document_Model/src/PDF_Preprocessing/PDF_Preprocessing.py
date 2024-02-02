@@ -3,16 +3,16 @@ from PIL import Image
 import imutils
 from os import listdir
 import numpy as np
-from skimage import exposure, transform
+from skimage import transform
 from pathlib import Path
 import yaml
 import logging
 from tqdm.auto import tqdm
 
-logger = logging.getLogger('PDF_Image_Extraction')
+logger = logging.getLogger('Image_Preprocessing')
 logger.setLevel(logging.ERROR)
 error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/PDF_Image_Extraction_Error_Log.log'))
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/Image_Preprocessing_Log.log'))
 error_handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 error_handler.setFormatter(formatter)
@@ -218,6 +218,7 @@ class ImagePreprocessing:
         centre = (w // 2, h // 2)
         rotation_matrix = cv2.getRotationMatrix2D(centre, angle, 1.0)
         rotated_image = cv2.warpAffine(image, rotation_matrix, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+        
         return rotated_image
 
     @staticmethod
@@ -251,6 +252,7 @@ class ImagePreprocessing:
         """
         # The getStructuringElement() operation denoises elements and disconnects connected blobs on the open operation (i.e. cv2.MORPH_OPEN)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        
         return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
     
     @staticmethod

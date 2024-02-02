@@ -1,15 +1,16 @@
 from os import listdir
-from os.path import join, splitext
+from os.path import join, splitext, basename
 import fitz # PyMuPDF for PDF and image data extraction
+from PIL import Image
 from pathlib import Path
 import yaml
 import logging
 from tqdm.auto import tqdm
 
-logger = logging.getLogger('PDF_Text_Extraction')
+logger = logging.getLogger('PDF_Image_Conversion')
 logger.setLevel(logging.ERROR)
 error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/PDF_Text_Extraction_Error_Log.log'))
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/PDF_Image_Conversion_Log.log'))
 error_handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 error_handler.setFormatter(formatter)
@@ -27,29 +28,35 @@ except:
 # Load global variables from config YAML file and declare local variables
 files_path = global_vars['files_path']
 start_id = global_vars['start_id']
-extracted_text_path = global_vars['extracted_text_path']
+extracted_PNG_path = global_vars['extracted_PNG_path']
 id = start_id
 
+# Create a PNG images folder if it doesn't exist
+extracted_PNG_path = Path(extracted_PNG_path)
+extracted_PNG_path.mkdir(parents=True, exist_ok=True)
+
 # Function to recursively open the PDFs with PyMuPDF, extract text and save to storage
-def extract_text_from_pdf(pdf_path):
+def convert_pdf_to_images(pdf_path, output_folder):
     doc = fitz.open(pdf_path)
-    text = ''
+
     for page_num in range(doc.page_count):
         page = doc[page_num]
-        text += page.get_text()
+        # Perform conversion of scanned page to image
+        pixmap = page.get_pixmap()
+        image = Image.frombytes('RGB', [pixmap.width, pixmap.height], pixmap.samples)
+
+        # Save image with original filename and page number
+        image_filename = f'{splitext(basename(pdf_path))[0]}_page_{page_num + 1}.png'
+        image_path = join(output_folder, image_filename)
+        image.save(image_path)
+    
     doc.close()
-    return text
 
 # Iterate through the list of downloaded PDFs
-for pdf_file in tqdm(listdir(files_path), desc='PDF Text Extraction Progress'):
+for pdf_file in tqdm(listdir(files_path), desc='PDF Image Conversion Progress'):
     try:
-        pdf_text = extract_text_from_pdf(f'{files_path}/0{id:.4f}.pdf')
+        convert_pdf_to_images(f'{files_path}/0{id:.4f}.pdf', extracted_PNG_path)
     except fitz.fitz.FileNotFoundError: # Handle any FileNotFoundErrors caused by research papers being removed from arXiv server
         pass
-    else:
-        # Save extracted text to a text file
-        output_text_file = join(extracted_text_path, f'{splitext(pdf_file)[0]}_text.txt')
-        with open(output_text_file, 'w', encoding='utf-8') as text_file:
-            text_file.write(pdf_text)
 
     id += 0.0001
