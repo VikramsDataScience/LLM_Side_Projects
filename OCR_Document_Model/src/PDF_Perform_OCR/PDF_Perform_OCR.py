@@ -1,11 +1,15 @@
 from os import listdir
-from os.path import join
+from os.path import join, splitext, basename
 import pytesseract
 from PIL import Image
 from pathlib import Path
 import yaml
 import logging
 from tqdm.auto import tqdm
+
+# The tesseract.exe will only become available once the installation file downloaded from https://github.com/UB-Mannheim/tesseract/wiki is run after running the pip install
+# After installation of the above is complete, find the exe file path and invoke Tesseract OCR
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 logger = logging.getLogger('Perform_OCR')
 logger.setLevel(logging.ERROR)
@@ -28,24 +32,29 @@ except:
 # Load global variables from config YAML file
 extracted_PNG_path = global_vars['extracted_PNG_path']
 OCR_Results_path = global_vars['OCR_Results_path']
-start_id = global_vars['start_id']
-id = start_id
+
+# Create the OCR Results folder if it doesn't exist
+OCR_Results_path = Path(OCR_Results_path)
+OCR_Results_path.mkdir(parents=True, exist_ok=True)
 
 # Function to perform OCR using Tesseract on an image
 def perform_ocr(image_path):
-    image = Image.open(image_path)
-    text = pytesseract.image_to_string(image, lang='eng')
+    text = pytesseract.image_to_string(image_path, lang='eng')
     return text
 
 # Iterate through the list of PNG files and perform OCR
 for png_file in tqdm(listdir(extracted_PNG_path), desc='Performing OCR on Extracted PNG Images'):
+    ocr_results = []
     try:
-        ocr_result = perform_ocr(png_file)
+        image_path = Path(extracted_PNG_path) / png_file
+        image = Image.open(image_path)
+        ocr_result = perform_ocr(image)
+        ocr_results.append(ocr_result)
     except IOError: # Handle any errors that Image.open(image_path) may raise caused by research papers being removed from arXiv server
         pass
     
-    results_path = join(OCR_Results_path, f'{png_file}_OCR_Result.txt')
-    with open(results_path, 'w', encoding='utf-8') as results_file:
-        results_file.write(ocr_result)
+    file_name = f'{splitext(basename(png_file))[0]}.txt'
+    results_path = join(OCR_Results_path, file_name)
 
-    # id += 0.0001
+    with open(results_path, 'w', encoding='utf-8') as results_file:
+        results_file.write('\n'.join(ocr_results))
