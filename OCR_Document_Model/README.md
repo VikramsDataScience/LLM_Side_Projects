@@ -1,13 +1,30 @@
-#  Optical Character Recognition (OCR) model based on research papers from arXiv in PDF (WIP)
+# Optical Character Recognition (OCR) model based on scientific research papers from arXiv in PDF (POC Complete)
+## Possible use cases
+Whilst, this model has been developed using the text extracted from research papers sourced from arXiv (that was more of a personal desire and preference), the use case for such an  OCR model could make up the document scanning & retrieval capability of a Multi Modal system. As language models mature and start to incorporate many models into a comprehensive system (the frontend of which is the chatbot that users interact with and experience), document scanning & retrieval will make up part of that system. ChatGPT is already beginning to role out such a feature in the paid tiers, whereby, users can upload PDFs to the chatbot, and it can read the PDF to extract meaningful insights about the user based on the documents they upload.
 
-
-# Possible use cases
-Whilst, this model has been developed using the text and images extracted from research papers sourced from arXiv (that was more of a personal desire and preference), the use case for such an  OCR model could make up the Document Retrieval capability of a Multi Modal system. As language models mature and start to incorporate many models into a comprehensive system (the front of which is the chatbot that users experience), document retrieval will make up part of that system. ChatGPT is already beginning to role out such a feature in the paid tiers, whereby, users can upload PDFs to the chatbot, and it can read the PDF to extract meaningful insights about the user based on the documents that they upload.
-
-As such, this OCR model, with the sufficient maturity beyond POC (since this model is super basic), would be required would make up that aspect of the Multi Modal chatbot (or Language Model). It could conceivably be used to extract the text and images from uploaded PDFs, perform OCR on the images, and perform whichever required NLP tasks on the text. The results of the OCR would then be fed into the multi modal chatbot, which can then use its own generative capabilities to provide responses and suggestions to users.
+As such, this OCR model, with the sufficient maturity beyond POC (since this model is a POC), would be required would make up that aspect of the Multi Modal chatbot (or Language Model). It could conceivably be used to use the OCR engine to extract the text from uploaded PDFs, and perform any useful NLP tasks on the text. The results of the OCR would then be fed into the multi modal chatbot, which can then use its own generative capabilities to provide responses, generate insights, and suggestions to users.
 
 ## On Optical Character Recognition (OCR)
+For this project, I decided to use Google's Tesseract (https://github.com/tesseract-ocr/tesseract) over a Convolutional Neural Network (CNN). This was mostly for experimental reasons, and also my research kept turning up Tesseract as the go-to for OCR. 
 
+Since Tesseract does use both heuristics and also LSTMs in the backend. As such, I wanted to see how such a hybrid method would perform for PDF document OCR. However, the presence of varying fonts and especially font sizes (intra document) meant that the results had limitations (please refer to the 'Identified bugs/limitations' section). This being said, with a bit of Preprocessing TLC (Tender Loving Care), I would think that should improve the accuracy of the character recognition in these documents.
 
-### Identified bugs
-- From time to time the image detection and extraction code I've written doesn't always extract images cleanly. for instance, in Document ID: 0704.0300 the image detection has correctly identified images in pages 1&2, but has extracted them in portions. Instead of cleanly extracting the image, it's broken up one image into several portions. As a POC, this is only a small problem, since the majority of the other images have been correctly extracted. But, in a production setting this could become a significant problem, and would need to be addressed.
+## Identified bugs, limitations and next steps
+- There are definite flaws in how characters (especially mathematical equations, special characters, and even sometimes some regular text) are interpreted by the OCR engine. Since the aim of the project is to get us to POC, we're forgiving these mistakes. To iterate beyond POC would require a deeper dive into repairing the current flaws into how the OCR engine is interpreting text. This would very likely require some delicate preprocessing work from the `PDF_Preprocessing` module.
+- One concern I do have regarding next steps would be the scalability of these OCR models in a production environment. Given how fragile computer vision is, preprocessing the images prior to passing it to Tesseract is vitally important to improving accuracy. So, I would be quite interested in further developing my skills by figuring out how to conduct OCR at a larger scale as I imagine that each image would require different preprocessing steps to clean up the image.
+
+## Installation of dependencies
+- To install the Tesseract OCR:
+    - Run `pip install pytesseract` from your command prompt
+    - Once complete, you'll need to visit https://github.com/UB-Mannheim/tesseract/wiki. Download and run the installation file as per your OS requirements.
+    - Once the installation has successfully run, you'll need to find the `tesseract.exe` file path. If you're using a Windows environment, it's most likely `C:\Program Files\Tesseract-OCR\tesseract.exe`. 
+    - Use this file path to invoke Tesseract OCR in `PDF_Perform_OCR` module:
+    ``` python
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    ```
+## Module Usage
+Please run the modules in the following order. There aren't any args that need to be parsed through the command line, so running each module can be run using `python <module_name>`. To change any args, please use the `config.yml` file to change args as desired:
+1. `arXiv_PDF_Download`: Running this module first will trigger a download of research papers based on their document ID. In order to change the document ID range, you can alter the `start_id` and `end_id` variables in the YAML script `config.yml`. You'll also need to change the file paths to suit file paths on your system.
+2. `PDF_Image_Conversion`: Once the PDFs are successfully downloaded, please run this module to get OpenCV to perform a 'scan' to convert the pages in the PDFs to `PNG` images.
+3. `PDF_Preprocessing`: I've developed quite a bit of preprocessing code in the `ImagePreprocessing` class that is modular. Please feel free to use whichever of the preprocessing techniques you feel are necessary to perform preprocessing on the converted images generated by the `PDF_Image_Conversion`.
+4. `PDF_Perform_OCR`: This will run the Tesseract OCR. Please don't forget to modify the module to invoke Tesseract as per the instructions on 'Installation of dependencies' section.

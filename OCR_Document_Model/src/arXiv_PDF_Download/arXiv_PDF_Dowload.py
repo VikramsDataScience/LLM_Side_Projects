@@ -7,7 +7,8 @@ import logging
 
 # IMPORTANT N.B.: arXiv do have an official API. However, the response from the API is a form of XML called Atom. Since, I'm currently interested in developing OCR for PDF 
 # documents, I've elected for the manual implementation represented by the following component module by downloading the research papers directly from 
-# specific URLs based on their arXiv ID numbers (i.e. the 'start_id' and 'end_id' variables). However, it should be noted that Engineering best practice would dictate using the API
+# specific URLs based on their arXiv ID numbers (i.e. the 'start_id' and 'end_id' variables). However, it should be noted that Engineering best practice 
+# would dictate using the API over this 'hack' I've put together.
 
 logger = logging.getLogger('arXiv_PDF_Download')
 logger.setLevel(logging.ERROR)
