@@ -1,15 +1,33 @@
 from transformers import AutoTokenizer, AutoModel
 import torch
 from datasets import load_dataset, Dataset
+import yaml
+import logging
 from pathlib import Path
 
-# Declare paths for the raw and cleaned JSON files
-content_path = 'C:/Sample Data/content_cleaned.json'
-# Declare path for saved models
-saved_models_path = Path('C:/Users/Vikram Pande/Job_Ad_QA_HuggingFace/saved_models')
+logger = logging.getLogger('Q&A_TrainTokenize')
+logger.setLevel(logging.ERROR)
+error_handler = logging.StreamHandler()
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/Q&A_TrainTokenize_log.log'))
+error_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
 
+# Load the file paths and global variables from YAML config file
+try:
+    config_path = Path('C:/Users/Vikram Pande/Side_Projects/Job_Ad_QA_Model')
+
+    with open(config_path / 'config.yml', 'r') as file:
+        global_vars = yaml.safe_load(file)
+except:
+    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
+
+# Declare paths for the raw and cleaned JSON files
+content_path = global_vars['content_path'] / 'content_cleaned.json'
+saved_models_path = global_vars['saved_models_path']
 # IMPORTANT: Before selecting a sentence embedding pretrained_model, please review the updated performance metrics for other commonly used models here (https://www.sbert.net/docs/pretrained_models.html#model-overview)
-pretrained_model = 'sentence-transformers/multi-qa-mpnet-base-dot-v1'
+pretrained_model = global_vars['pretrained_model']
 
 # Create a checkpoint (i.e. pretrained data), and initialize the tokens
 tokenizer = AutoTokenizer.from_pretrained(pretrained_model)

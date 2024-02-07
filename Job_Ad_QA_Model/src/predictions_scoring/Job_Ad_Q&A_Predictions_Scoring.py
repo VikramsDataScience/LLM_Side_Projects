@@ -2,13 +2,33 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from datasets import load_dataset, Dataset
 from pathlib import Path
+import yaml
+import logging
 import argparse
 
+logger = logging.getLogger('Q&A_PredictionsScoring')
+logger.setLevel(logging.ERROR)
+error_handler = logging.StreamHandler()
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/Q&A_PredictionsScoring_log.log'))
+error_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
+
+# Load the file paths and global variables from YAML config file
+try:
+    config_path = Path('C:/Users/Vikram Pande/Side_Projects/Job_Ad_QA_Model')
+
+    with open(config_path / 'config.yml', 'r') as file:
+        global_vars = yaml.safe_load(file)
+except:
+    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
+
+# Declare paths for the raw and cleaned JSON files
+content_path = global_vars['content_path'] / 'content_cleaned.json'
+saved_models_path = global_vars['saved_models_path']
 # IMPORTANT: Before selecting a sentence embedding pretrained_model, please review the updated performance metrics for other commonly used models here (https://www.sbert.net/docs/pretrained_models.html#model-overview)
-pretrained_model = 'sentence-transformers/multi-qa-mpnet-base-dot-v1'
-# Paths for preprocessed corpus and saved models
-content_path = 'C:/Sample Data/content_cleaned.json'
-saved_models_path = 'C:/Users/Vikram Pande/Side_Projects/Job_Ad_QA/saved_models'
+pretrained_model = global_vars['pretrained_model']
 
 # Initialise argparse
 parser = argparse.ArgumentParser('Predictions_Scoring')
