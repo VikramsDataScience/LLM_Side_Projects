@@ -1,0 +1,3 @@
+content_path: 'C:/Sample Data/Job_Ad_QA_data'
+saved_models_path: 'C:/Sample Data/Job_Ad_QA_data/saved_models'
+pretrained_model: 'sentence-transformers/multi-qa-mpnet-base-dot-v1'
