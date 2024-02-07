@@ -37,6 +37,7 @@ from NCF_Architecture_config import NCF
 
 # Declare global variables from config YAML file
 files_path = Path(global_vars['files_path'])
+trained_models = global_vars['trained_models']
 model_ver = global_vars['model_ver']
 embedding_dim = global_vars['embedding_dim']
 batch_size = global_vars['batch_size']
@@ -48,7 +49,7 @@ gamma = global_vars['gamma']
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Load and inspect Preprocessed data left by the upstream 'Preprocessing_EDA' component
-sp_matrix = sp.load_npz(files_path / f'sparse_matrix_{model_ver}.npz').tocoo() # Specify coordinate sparse matrix as prep for the Tensor conversion
+sp_matrix = sp.load_npz(trained_models / f'sparse_matrix_{model_ver}.npz').tocoo() # Specify coordinate sparse matrix as prep for the Tensor conversion
 print('SPARSE MATRIX:' + '\n', sp_matrix)
 
 # Extract and assign 'order_id', 'product_id', and 'reordered' values from the sparse matrix
@@ -72,9 +73,9 @@ product_train_tensor = torch.LongTensor(product_train).to(device)
 reordered_train_tensor = torch.FloatTensor(reordered_train).to(device)
 
 # Save test sets to disk for the downstream 'NCF_Model_Evaluate' module
-np.save(files_path / f'order_test_{model_ver}.npy', order_test)
-np.save(files_path / f'product_test_{model_ver}.npy', product_test)
-np.save(files_path / f'reordered_test_{model_ver}.npy', reordered_test)
+np.save(trained_models / f'order_test_{model_ver}.npy', order_test)
+np.save(trained_models / f'product_test_{model_ver}.npy', product_test)
+np.save(trained_models / f'reordered_test_{model_ver}.npy', reordered_test)
 # Delete test sets from module to save memory
 del order_test, product_test, reordered_test
 
@@ -103,7 +104,7 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 for epoch in tqdm(range(num_epochs), desc='Epochs'):
     model.train()
-    for batch_orders, batch_products, batch_reorders in tqdm(train_loader, desc='Training Steps'):
+    for batch_orders, batch_products, batch_reorders in tqdm(train_loader, desc='Model Training Progress'):
         optimizer.zero_grad()
 
         # Use Mixed Precision Testing to improve training time
@@ -119,4 +120,4 @@ for epoch in tqdm(range(num_epochs), desc='Epochs'):
     scheduler.step()
 
 # Save trained model to disk location
-torch.save(model.state_dict(), files_path / f'model_state_{model_ver}.pth')
+torch.save(model.state_dict(), trained_models / f'model_state_{model_ver}.pth')

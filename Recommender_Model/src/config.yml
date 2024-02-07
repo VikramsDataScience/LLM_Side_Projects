@@ -7,4 +7,5 @@ gamma: 0.1
 total_loss: 0.0
 files_path: 'C:/Sample Data/Recommender_data'
 preprocess_path: 'C:/Users/Vikram Pande/LLM_Side_Projects/Recommender_Model/src/Preprocessing_EDA'
+trained_models: 'C:/Sample Data/Recommender_data/Trained_models'
 NCF_path: 'C:\Users\Vikram Pande\Side_Projects\Recommender_Model\src' # Path must be back slashes since the sys.path.append() call is being used

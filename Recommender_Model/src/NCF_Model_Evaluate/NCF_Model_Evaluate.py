@@ -6,6 +6,7 @@ import scipy.sparse as sp
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 import sys
 import yaml
 import logging
@@ -38,13 +39,15 @@ embedding_dim = global_vars['embedding_dim']
 batch_size = global_vars['batch_size']
 total_loss = global_vars['total_loss']
 files_path = Path(global_vars['files_path'])
+trained_models = Path(global_vars['trained_models'])
 
 # Load saved data left by upstream modules
 product_lookup = pd.read_csv(files_path / 'products.csv')
-sp_matrix = sp.load_npz(files_path / f'sparse_matrix_{model_ver}.npz').tocoo() # Convert to 'coordinate sparse matrix' as prep for the Tensor conversion
-order_test = np.load(files_path / f'order_test_{model_ver}.npy')
-product_test = np.load(files_path / f'product_test_{model_ver}.npy')
-reordered_test = np.load(files_path / f'reordered_test_{model_ver}.npy')
+sp_matrix = sp.load_npz(trained_models / f'sparse_matrix_{model_ver}.npz').tocoo() # Convert to 'coordinate sparse matrix' as prep for the Tensor conversion
+order_test = np.load(trained_models / f'order_test_{model_ver}.npy')
+product_test = np.load(trained_models / f'product_test_{model_ver}.npy')
+reordered_test = np.load(trained_models / f'reordered_test_{model_ver}.npy')
+model_state = torch.load(trained_models / f'model_state_{model_ver}.pth')
 
 # If GPU is available, instantiate a device variable to use the GPU
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -55,7 +58,7 @@ num_products = sp_matrix.shape[1]
 
 # Load pretrained model and mount to GPU
 model = NCF(num_orders, num_products, embedding_dim)
-model.load_state_dict(torch.load(files_path / f'model_state_{model_ver}.pth'))
+model.load_state_dict(torch.load(trained_models / f'model_state_{model_ver}.pth'))
 model.to(device)
 
 # Extract and assign 'order_id', 'product_id', and 'reordered' values from the sparse matrix
@@ -81,11 +84,29 @@ test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
 # Commence evaluation loop
 model.eval()
+total_loss = 0.0
+predictions = []
+targets = []
 
 with torch.no_grad():
-    for batch_orders, batch_products, batch_reorders in tqdm(test_loader, desc='Evaluation Steps'):
+    for batch_orders, batch_products, batch_reorders in tqdm(test_loader, desc='Model Evaluation Progress'):
         outputs = model(batch_orders, batch_products)
         loss = criterion(outputs, batch_reorders)
         total_loss += loss.item()
 
+        predictions.extend(outputs.cpu().numpy())
+        targets.extend(batch_reorders.cpu().numpy())
+
+# Calculate & save evaluation metrics to storage
 average_loss = total_loss / len(test_loader)
+mae = mean_absolute_error(targets, predictions)
+rmse = np.sqrt(mean_squared_error(targets, predictions))
+
+print('AVERAGE LOSS: ', average_loss)
+print('MEAN ABSOLUTE ERROR: ', mae)
+print('ROOT MEAN SQUARED ERROR: ', rmse)
+
+with open(trained_models / 'evaluation_metrics.txt', 'w') as eval_metrics:
+    eval_metrics.write(f'AVERAGE LOSS: {average_loss}\n')
+    eval_metrics.write(f'MEAN ABSOLUTE ERROR: {mae}\n')
+    eval_metrics.write(f'ROOT MEAN SQUARED ERROR: {rmse}\n')
