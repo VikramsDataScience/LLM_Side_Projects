@@ -1,3 +1,5 @@
-content_path: 'C:/Sample Data/Job_Ad_QA_data'
+content_file: 'C:/Sample Data/Job_Ad_QA_data/content_cleaned.json'
+content_path: 'C:/Sample Data/Job_Ad_QA_data/'
 saved_models_path: 'C:/Sample Data/Job_Ad_QA_data/saved_models'
 pretrained_model: 'sentence-transformers/multi-qa-mpnet-base-dot-v1'
+batch_size: 100

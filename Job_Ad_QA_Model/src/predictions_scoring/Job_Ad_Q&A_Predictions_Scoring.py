@@ -25,7 +25,7 @@ except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 # Declare paths for the raw and cleaned JSON files
-content_path = global_vars['content_path'] / 'content_cleaned.json'
+content_file = global_vars['content_file']
 saved_models_path = global_vars['saved_models_path']
 # IMPORTANT: Before selecting a sentence embedding pretrained_model, please review the updated performance metrics for other commonly used models here (https://www.sbert.net/docs/pretrained_models.html#model-overview)
 pretrained_model = global_vars['pretrained_model']
@@ -41,8 +41,8 @@ tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
 model = AutoModel.from_pretrained(pretrained_model)
 
 # Load the dataset
-train_test_dict = {'train': content_path, 
-                   'test': content_path}
+train_test_dict = {'train': content_file, 
+                   'test': content_file}
 
 clean_content = load_dataset('json', 
                              data_files=train_test_dict, 
@@ -74,7 +74,7 @@ def encode_batch(batch):
 
     return {'content': embeddings}
 
-# Load the tokenized docs that were generated from the 'Job_Ad_Q&A_Train_Tokenize' component
+# Load the tokenized docs that were generated from the 'Job_Ad_Q&A_Train_Tokenize' module
 docs_tokenizer = Dataset.load_from_disk(Path(saved_models_path))
 
 # Encode query and convert to Tensor N.B. try to avoid calling torch.tensor() when squeezing tensor to a lower dimension, as this throws UserWarnings
