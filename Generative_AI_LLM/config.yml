@@ -1,0 +1,4 @@
+saved_models_path: 'C:/Sample Data/Job_Ad_QA_data/saved_models'
+model_output_path: 'C:/Users/Vikram Pande/Side_Projects/Model_Output'
+training_log_path: 'C:/Users/Vikram Pande/Side_Projects/Training_Logs'
+pretrained_model: 'gpt2'
