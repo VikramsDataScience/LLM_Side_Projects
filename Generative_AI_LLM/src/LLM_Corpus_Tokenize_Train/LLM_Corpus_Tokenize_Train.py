@@ -1,6 +1,9 @@
-# from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2LMHeadModel
 import tiktoken
+from sklearn.model_selection import train_test_split
 import torch
+from torch.utils.data import DataLoader
+import numpy as np
 import yaml
 import logging
 from pathlib import Path
@@ -24,26 +27,40 @@ except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 content_file = global_vars['content_file']
-pretrained_model = global_vars['pretrained_model']
+pretrained_HG_model = global_vars['pretrained_HG_model']
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
 batch_size = global_vars['batch_size']
+model_ver = global_vars['model_ver']
 
 print('Is GPU available?:', torch.cuda.is_available())
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
+# Load pretrained model from HuggingFace Hub
+pretrained_model = GPT2LMHeadModel.from_pretrained(pretrained_HG_model).to(device)
+
 # Load custom text corpus from the TXT file created by the 'LLM_PreProcessing' module
-# IMPORTANT N.B.: If using OpenAI's tiktoken, the TXT file must be 'utf-8' encoded to ensure lossless execution. Otherwise tiktoken will generate lossy (incorrect) tokens during the encode/decode steps
+# IMPORTANT N.B.: If using OpenAI's 'tiktoken', the TXT file must be 'utf-8' encoded to ensure lossless execution. Otherwise tiktoken will generate lossy (data will leak) tokens during the encode/decode steps
 with open(Path(content_file), 'r', encoding='utf-8') as f:
     custom_text = f.read()
 
 # Use OpenAI's GPT-4 Byte Pair Encoding (BPE) tokenizer to encode the Job ad text corpus
 tokenizer = tiktoken.get_encoding('cl100k_base')
-# 'allow_special' arg refers to correctly tokenizing any special characters that may exist. It can be set to 'all', 'none', or a custom list of special tokens to allow
+# 'allow_special' arg refers to correctly tokenizing any special characters that may exist. It can be set to 'all', 'none', or a custom list of special tokens to allow/disallow
+print('Encoding custom TXT file...')
 encoded_text = tokenizer.encode(custom_text, allowed_special='all')
+print('Encoding successfully completed!')
 
-# Convert to Tensor data structure and define Train & Test sets
-data = torch.tensor(encoded_text, dtype=torch.long)
-n = int(0.9 * len(data))
-train = data[:n] # Take the first 0.9 of the custom set for training
-test = data[n:] # Take the remaining 0.1 of the custom set for validation
+# Split into Train & Test sets and convert to Tensor data structure
+train_data, test_data = train_test_split(encoded_text, test_size=0.10, random_state=314)
+print('Saving test set as:', f'LLM_test_data_{model_ver}.npy')
 
+np.save(Path(LLM_pretrained_path) / f'LLM_test_data_{model_ver}.npy', test_data)
+print('Testing set saved successfully! \nTesting set storage location:', Path(LLM_pretrained_path) / f'LLM_test_data_{model_ver}.npy')
+# Delete 'test_data' since it's been saved to disk for validation further downstream
+del test_data
+
+train_tensor = torch.LongTensor(train_data).to(device)
+# Divide training set into batches for the training loop
+train_batches = DataLoader(train_tensor, batch_size=batch_size)
+
+print(f'No. of parameters in the Pretrained \'{pretrained_HG_model}\' model: {pretrained_model.num_parameters():,}')
