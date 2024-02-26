@@ -5,4 +5,5 @@ LLM_pretrained_path: 'C:/Sample Data/Job_Ad_QA_data/saved_models/llm_saved_model
 model_output_path: 'C:/Users/Vikram Pande/Side_Projects/Model_Output'
 training_log_path: 'C:/Users/Vikram Pande/Side_Projects/Training_Logs'
 pretrained_HG_model: 'gpt2'
-batch_size: 1024 # Use base 2 numbers to modify training loop batch sizes (i.e. 32, 64, 128, 256, 512, etc.)
+batch_size: 32 # Use base 2 numbers to modify training loop batch sizes (i.e. 32, 64, 128, 256, 512, etc.)
+learning_rate: 1e-08
