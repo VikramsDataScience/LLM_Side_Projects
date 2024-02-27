@@ -1,4 +1,4 @@
-from transformers import GPT2LMHeadModel
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import tiktoken
 from sklearn.model_selection import train_test_split
 import torch
@@ -6,6 +6,7 @@ from lightning.pytorch.tuner import Tuner
 from lightning import LightningModule
 from lightning.pytorch.trainer.trainer import Trainer
 from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 import yaml
 import logging
@@ -77,34 +78,58 @@ def train_test(tokenzized_training_set):
 
     return train_data
 
+def collate_fn(data):
+    """
+    To ensure that matrix multiplication is performed on rectangular matrices, run this function
+    within the 'collate_fn' argument of the DataLoader() to pad the shorter sentences with 0s (or any other 
+    value you like) by calling Pytorch's pad_sequence() function.
+    """
+    return pad_sequence(data, batch_first=True, padding_value=GPT2Tokenizer.pad_token_id)
+
+class FineTuneLRFinder(LightningModule):
+    """
+    Use Pytorch Lightening's experimental Learning Rate finder to discover the optimal LR during Optimisation
+    """
+    def __init__(self, model, custom_data):
+        super().__init__()
+        self.learning_rate = learning_rate
+        self.model = model
+        self.custom_data = custom_data
+
+    def training_step():
+        
+    
+    def train_data_loader(data):
+        """
+        Divide training set into batches, pad shorter sentences using the defined 'collate_fn()', pin_memory allows 
+        for faster transfer of data to the GPU, and num_workers enables asynchronous data fetching that won't 
+        block GPU computation.
+        """
+        return DataLoader(data,
+                        collate_fn=collate_fn,
+                        batch_size=batch_size, 
+                        shuffle=True, 
+                        pin_memory=True, 
+                        num_workers=4)
+    
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.parameters(), lr=(self.lr or self.learning_rate))
+
 encoded_text = tokenize_data(content_file)
 train_data = train_test(encoded_text)
-
 train_tensor = torch.LongTensor(train_data).to(device)
 
 print(f'No. of parameters in the Pretrained \'{pretrained_HG_model}\' model: {pretrained_model.num_parameters():,}')
 
-class FineTuneLRFinder(LightningModule):
-    def __init__(self, learning_rate):
-        super().__init__()
-        self.learning_rate = learning_rate
-        self.model = Model(...)
-
-    def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
-
-model = FineTuneLRFinder()
-trainer = Trainer(...)
+model = FineTuneLRFinder(pretrained_model, train_tensor)
+trainer = Trainer(accelerator='gpu', inference_mode=torch.no_grad())
 tuner = Tuner(trainer)
-# This will find the learning rate automatically and sets hparams.learning_rate to that learning rate
-tuner.lr_find(model)
-
-# Divide training set into batches, pin_memory allows for faster transfer of data to the GPU, and num_workers enables asynchronous data fetching that won't block GPU computation 
-train_batches = DataLoader(train_tensor, 
-                           batch_size=batch_size, 
-                           shuffle=True, 
-                           pin_memory=True, 
-                           num_workers=4)
+lr_finder = tuner.lr_find(model)
+# Get the new suggested LR
+new_lr = lr_finder.suggestion()
+# Update the model's hparams with the new LR
+model.hparams.lr = new_lr
+trainer.fit(model)
 
 # Define and commence training loop
 pretrained_model.train()
