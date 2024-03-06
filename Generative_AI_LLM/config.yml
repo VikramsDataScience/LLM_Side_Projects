@@ -5,4 +5,6 @@ LLM_pretrained_path: 'C:/Sample Data/Job_Ad_QA_data/saved_models/llm_saved_model
 model_output_path: 'C:/Users/Vikram Pande/Side_Projects/Model_Output'
 training_log_path: 'C:/Users/Vikram Pande/Side_Projects/Training_Logs'
 pretrained_HG_model: 'gpt2'
-learning_rate: 1e-08
+learning_rate: 1e-04
+batch_size: 32
+num_epochs: 20
