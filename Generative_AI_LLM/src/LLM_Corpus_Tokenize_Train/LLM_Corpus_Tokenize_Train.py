@@ -1,15 +1,13 @@
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2LMHeadModel
 import argparse
 import tiktoken
 from sklearn.feature_extraction.text import TfidfVectorizer
 import torch
-from lightning.pytorch.tuner import Tuner
-from lightning.pytorch.trainer.trainer import Trainer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset, DataLoader, TensorDataset
+from torch.nn.utils.rnn import pad_sequence
 import yaml
 import logging
 from pathlib import Path
-from tqdm.auto import tqdm
 
 logger = logging.getLogger('LLM_TrainTokenize')
 logger.setLevel(logging.ERROR)
@@ -48,9 +46,9 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 # Load pretrained model from HuggingFace Hub and mount to the GPU
 pretrained_model = GPT2LMHeadModel.from_pretrained(pretrained_HG_model).to(device)
-pretrained_tokenizer = GPT2Tokenizer.from_pretrained(pretrained_HG_model)
 print(f'No. of parameters in the Pretrained \'{pretrained_HG_model}\' model: {pretrained_model.num_parameters():,}')
 
+# Load the pre-processed 'custom_corpus' left by the 'LLM_Corpus_PreProcessing' upstream module
 with open(Path(content_file), 'r', encoding='utf-8') as f:
     custom_corpus = f.readlines()
 
@@ -62,6 +60,10 @@ corpus_vectors = vectorizer.fit_transform(custom_corpus)
 tokenizer = tiktoken.get_encoding('cl100k_base')
 
 def retrieve_relevant_docs(input_text, top_k=3):
+    """
+    Apply feature extraction techniques such as TFIDF to extract valuable information from
+    the 'custom_corpus'.
+    """
     input_vector = vectorizer.transform([input_text])
     similarities = corpus_vectors.dot(input_vector.T).toarray().ravel()
     top_doc_indices = similarities.argsort()[-top_k:][::-1]
@@ -111,18 +113,36 @@ class ContextDataSet(Dataset):
         target_ids = self.targets[idx]
         return torch.tensor(input_ids), target_ids
 
-################# Run class to extract input/target QA pairs #################
+def generate_response(user_input, max_length=128, batch_size=32):
+    """
+    Model generated response with attention masks based on user input query.
+    """
+    input_ids = [tokenizer.encode(text) for text in user_input]
+    attention_masks = [[1] * len(ids) for ids in input_ids]
+
+    input_tensors = [torch.tensor(ids).to(device) for ids in input_ids]
+    attention_tensors = [torch.tensor(masks).to(device) for masks in attention_masks]
+
+    input_tensors = pad_sequence(input_tensors, batch_first=True, padding_value=tokenizer.eot_token)
+    attention_tensors = pad_sequence(attention_tensors, batch_first=True, padding_value=0)
+
+    input_tensors = input_tensors.unsqueeze(0)
+    attention_tensors = attention_tensors.unsqueeze(0)
+    
+    dataset = TensorDataset(input_tensors, attention_tensors)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+
+    responses = []
+    for input_tensor, attention_tensor in dataloader:
+        output_ids = pretrained_model.generate(input_tensor, 
+                                  max_length=max_length,
+                                  attention_masks=attention_tensor)
+
+        batch_responses = [tokenizer.decode(output_ids[i].tolist()) for i in range(len(output_ids))]
+        responses.extend(batch_responses)
+
+    return response
+
+################# Run class to extract input/target QA pairs and generate response to user query #################
 context_data = ContextDataSet(corpus=custom_corpus, inputs=args.query)
-
-################# Define and run Training Loop #################
-# train_tensor = torch.LongTensor(train_data).to(device)
-# data_loader = DataLoader(train_tensor, batch_size=batch_size, shuffle=True)
-# optimizer = torch.optim.Adam(pretrained_model.parameters(), lr=learning_rate)
-# criterion = torch.nn.CrossEntropyLoss()
-
-# for epoch in tqdm(range(num_epochs), desc='Model Training Progress'):
-#     for batched_tensors in data_loader:
-#         # Clear gradients at each pass of the loop
-#         optimizer.zero_grad()
-#         outputs = pretrained_model(batched_tensors)
-
+response = generate_response(user_input=args.query)
