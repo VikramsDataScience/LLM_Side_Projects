@@ -1,4 +1,5 @@
 from transformers import GPT2LMHeadModel
+from tqdm.auto import tqdm
 import argparse
 import tiktoken
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -21,7 +22,7 @@ logger.addHandler(error_handler)
 # Initialise argparse
 parser = argparse.ArgumentParser('LLM_Corpus_Tokenize_Train')
 parser.add_argument('--query', type=str, help='Please enter query string or prompt to generate a model\'s response',
-                    default='Write a job ad for a Machine Learning Engineer')
+                    default='Write a job ad for a Data Scientist')
 args = parser.parse_args()
 
 # Load the file paths and global variables from YAML config file
@@ -126,22 +127,22 @@ def generate_response(user_input, max_length=128, batch_size=32):
     input_tensors = pad_sequence(input_tensors, batch_first=True, padding_value=tokenizer.eot_token)
     attention_tensors = pad_sequence(attention_tensors, batch_first=True, padding_value=0)
 
-    input_tensors = input_tensors.unsqueeze(0)
-    attention_tensors = attention_tensors.unsqueeze(0)
+    # input_tensors = input_tensors.unsqueeze(0)
+    # attention_tensors = attention_tensors.unsqueeze(0)
     
     dataset = TensorDataset(input_tensors, attention_tensors)
     dataloader = DataLoader(dataset, batch_size=batch_size)
 
     responses = []
-    for input_tensor, attention_tensor in dataloader:
-        output_ids = pretrained_model.generate(input_tensor, 
+    for input_tensor, attention_tensor in tqdm(dataloader, desc='Model Training Progress'):
+        output_ids = pretrained_model.generate(input_tensor,
                                   max_length=max_length,
-                                  attention_masks=attention_tensor)
+                                  attention_mask=attention_tensor)
 
         batch_responses = [tokenizer.decode(output_ids[i].tolist()) for i in range(len(output_ids))]
         responses.extend(batch_responses)
 
-    return response
+    return responses
 
 ################# Run class to extract input/target QA pairs and generate response to user query #################
 context_data = ContextDataSet(corpus=custom_corpus, inputs=args.query)
