@@ -1,5 +1,4 @@
-from transformers import GPT2LMHeadModel
-from tqdm.auto import tqdm
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import argparse
 import tiktoken
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -22,7 +21,7 @@ logger.addHandler(error_handler)
 # Initialise argparse
 parser = argparse.ArgumentParser('LLM_Corpus_Tokenize_Train')
 parser.add_argument('--query', type=str, help='Please enter query string or prompt to generate a model\'s response',
-                    default='Write a job ad for a Data Scientist')
+                    default='Write a job ad for a Senior Data Scientist')
 args = parser.parse_args()
 
 # Load the file paths and global variables from YAML config file
@@ -39,7 +38,6 @@ pretrained_HG_model = global_vars['pretrained_HG_model']
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
 model_ver = global_vars['model_ver']
 learning_rate = global_vars['learning_rate']
-batch_size = global_vars['batch_size']
 num_epochs = global_vars['num_epochs']
 
 print('Is GPU available?:', torch.cuda.is_available())
@@ -47,6 +45,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 # Load pretrained model from HuggingFace Hub and mount to the GPU
 pretrained_model = GPT2LMHeadModel.from_pretrained(pretrained_HG_model).to(device)
+pretrained_tokenizer = GPT2Tokenizer.from_pretrained(pretrained_HG_model)
 print(f'No. of parameters in the Pretrained \'{pretrained_HG_model}\' model: {pretrained_model.num_parameters():,}')
 
 # Load the pre-processed 'custom_corpus' left by the 'LLM_Corpus_PreProcessing' upstream module
@@ -64,6 +63,10 @@ def retrieve_relevant_docs(input_text, top_k=3):
     """
     Apply feature extraction techniques such as TFIDF to extract valuable information from
     the 'custom_corpus'.
+    
+    IMPORTANT N.B.: Since document retrieval represents such an important aspect of chatbot performance
+    it might be a good idea to experiment with a variety of techniques for feature extraction to improve
+    performance.
     """
     input_vector = vectorizer.transform([input_text])
     similarities = corpus_vectors.dot(input_vector.T).toarray().ravel()
@@ -71,9 +74,10 @@ def retrieve_relevant_docs(input_text, top_k=3):
     top_docs = [custom_corpus[i] for i in top_doc_indices]
     return top_docs
 
+################ DEFINE FEATURE EXTRACTION PIPELINE FROM CUSTOM CORPUS ################
 class ContextDataSet(Dataset):
     """
-    This class inherits the 'torch.utils.data.Dataset' class from pytorch to map key to data samples
+    This class inherits the 'torch.utils.data.Dataset' class from pytorch to map 'key' to 'data' samples
     (inputs and targets sequences generated using tiktoken).
     """
     def __init__(self, corpus, inputs):
@@ -99,7 +103,7 @@ class ContextDataSet(Dataset):
             try:
                 assert tokenizer.decode(target_ids) == target_text
             except AssertionError:
-                print('WARNING: Byte Pair Encoding contains inconsistencies. Please check your text corpus for any lossy issues during encoding process.')
+                print('WARNING: Byte Pair Encoding contains inconsistencies. Please check your text corpus for any lossy issues that might impact encoding process.')
 
             self.targets.append(torch.tensor(target_ids))
         if AssertionError != True:
@@ -114,36 +118,57 @@ class ContextDataSet(Dataset):
         target_ids = self.targets[idx]
         return torch.tensor(input_ids), target_ids
 
-def generate_response(user_input, max_length=128, batch_size=32):
-    """
-    Model generated response with attention masks based on user input query.
-    """
-    input_ids = [tokenizer.encode(text) for text in user_input]
-    attention_masks = [[1] * len(ids) for ids in input_ids]
-
-    input_tensors = [torch.tensor(ids).to(device) for ids in input_ids]
-    attention_tensors = [torch.tensor(masks).to(device) for masks in attention_masks]
-
-    input_tensors = pad_sequence(input_tensors, batch_first=True, padding_value=tokenizer.eot_token)
-    attention_tensors = pad_sequence(attention_tensors, batch_first=True, padding_value=0)
-
-    # input_tensors = input_tensors.unsqueeze(0)
-    # attention_tensors = attention_tensors.unsqueeze(0)
+################ GET USER QUERIES AND GENERATE RESPONSES ################
+# def generate_response(user_input):
     
-    dataset = TensorDataset(input_tensors, attention_tensors)
-    dataloader = DataLoader(dataset, batch_size=batch_size)
+#     """
+#     Model generated response with attention masks based on user input query.
 
-    responses = []
-    for input_tensor, attention_tensor in tqdm(dataloader, desc='Model Training Progress'):
-        output_ids = pretrained_model.generate(input_tensor,
-                                  max_length=max_length,
-                                  attention_mask=attention_tensor)
+#     On Attention Masks: The 'attention_mask' is built using a right-angled triangle matrix 
+#     (using torch.tril()), whereby the masks populate the interior of the triangle 
+#     (i.e. lower diagonal of the Hypotenuse). This size of the matrix triangle is determined 
+#     by taking the len(input_tensors).
+#     """
+#     input_ids = [tokenizer.encode(text) for text in user_input]
+#     input_tensors = [torch.tensor(ids) for ids in input_ids]
 
-        batch_responses = [tokenizer.decode(output_ids[i].tolist()) for i in range(len(output_ids))]
-        responses.extend(batch_responses)
+#     seq_length = len(input_tensors)
+#     attention_mask = torch.tril(torch.ones(seq_length, seq_length, dtype=torch.long))
 
-    return responses
+#     # Pad tensors and attention_mask, and store on 0th dimension (i.e. unsqueeze(0)) tensor
+#     input_tensors = pad_sequence(input_tensors, batch_first=True, padding_value=tokenizer.eot_token).to(device)
+#     attention_tensors = pad_sequence(attention_mask, batch_first=True, padding_value=0).to(device)
+#     print(input_tensors.shape)
+#     print(attention_tensors.shape)
+    
+#     batch_size = input_tensors.shape[0] # Only reference first element [0] of 'input_tensors' if pad_sequence(batch_first=True). Otherwise pad_sequence() will default to T (longest sequence) x B (batch)
+#     dataset = TensorDataset(input_tensors, attention_tensors)
+#     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+#     for input_tensor, attention_tensor in dataloader:
+        
+#         with torch.inference_mode():
+#             output_ids = pretrained_model.generate(input_tensor,
+#                                                    max_length=100,
+#                                                    attention_mask=attention_tensor)
+
+#     for i, beam in enumerate(output_ids):
+#         print(f'RESPONSE {i}: {tokenizer.decode(beam)}')
+
+def generate_response(user_input):
+    input_ids = pretrained_tokenizer.encode(user_input, return_tensors='pt').to(device)
+    attention_mask = input_ids.ne(pretrained_tokenizer.pad_token_id).long()
+
+    output_ids = pretrained_model.generate(input_ids, 
+                                              attention_mask=attention_mask,
+                                              max_length=100, # Specify the desired maximum length of the generated text
+                                              num_return_sequences=1,  # Number of sequences to generate
+                                              early_stopping=True)  # Stop generation as soon as the model generates the end-of-sequence token
+
+    generate_text = pretrained_tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    
+    return generate_text
 
 ################# Run class to extract input/target QA pairs and generate response to user query #################
-context_data = ContextDataSet(corpus=custom_corpus, inputs=args.query)
-response = generate_response(user_input=args.query)
+# context_data = ContextDataSet(corpus=custom_corpus, inputs=args.query)
+generate_response(user_input=args.query)
