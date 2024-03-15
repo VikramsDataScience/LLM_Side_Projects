@@ -1,6 +1,8 @@
-from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, TextDataset, GPT2Tokenizer, GPT2LMHeadModel
-from datasets import load_from_disk
+from transformers import GPT2LMHeadModel, AutoTokenizer, TextDataset, DataCollatorForLanguageModeling, TrainingArguments, Trainer
+from datasets import Dataset
 import torch
+import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
 from pathlib import Path
 import logging
 import yaml
@@ -26,30 +28,40 @@ except:
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
 training_log_path = global_vars['training_log_path']
 model_output_path = global_vars['model_output_path']
-pretrained_model = global_vars['pretrained_model']
+pretrained_model = global_vars['pretrained_HG_model']
+content_file_path = global_vars['content_file']
 
 print('Is GPU available?:', torch.cuda.is_available())
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-pretrained_tokenizer = GPT2Tokenizer.from_pretrained(pretrained_model)
+tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
+tokenizer.pad_token = tokenizer.eos_token
 model = GPT2LMHeadModel.from_pretrained(pretrained_model).to(device)
-custom_pre_trained_docs = load_from_disk(Path(LLM_pretrained_path) / 'LLM_Trained_Tokenized')
+optimizer = optim.AdamW(model.parameters(), lr=0.001)
+scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
 
-train_dataset = TextDataset(custom_pre_trained_docs)
-# When using a Pretrained model (such as https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1) that contain special tokens like [INST], [/INST], etc. set 'mlm': Masked Language Modelling to 'True'
-data_collator = DataCollatorForLanguageModeling(tokenizer=pretrained_tokenizer, mlm=False)
+print('Loading Tokenized Batches from disk location...')
+tokenized_batches = Dataset.load_from_disk(Path(LLM_pretrained_path)/ 'train')
 
-# Define training arguments before running the Trainer
-training_args = TrainingArguments(per_device_train_batch_size=2, # Number of tokens per batch 
+############# DEFINE AND RUN TRAINING PIPELINE #############
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+
+# Define training arguments to be used by the Trainer
+training_args = TrainingArguments(per_device_train_batch_size=8,
                                   num_train_epochs=3,
                                   logging_dir=training_log_path,
-                                  output_dir=model_output_path)
+                                  output_dir=model_output_path,
+                                  auto_find_batch_size=True,
+                                  half_precision_backend=True)
 
 # Run the Trainer to enable Transfer Learning (i.e. fine tune the custom dataset)
 trainer = Trainer(model=model,
                   args=training_args,
                   data_collator=data_collator,
-                  train_dataset=train_dataset)
+                  train_dataset=tokenized_batches,
+                  tokenizer=tokenizer,
+                  optimizers=(optimizer, scheduler.step()))
 trainer.train()
 
-# model.save_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
+# Save finetuned model for downstream module
+model.save_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
