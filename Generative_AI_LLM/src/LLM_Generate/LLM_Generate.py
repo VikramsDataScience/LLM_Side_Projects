@@ -1,5 +1,5 @@
-from transformers import GPT2LMHeadModel, AutoTokenizer
-from datasets import load_dataset, Dataset
+from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, TextDataset, GPT2Tokenizer, GPT2LMHeadModel
+from datasets import load_from_disk
 import torch
 from pathlib import Path
 import logging
@@ -26,26 +26,12 @@ except:
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
 training_log_path = global_vars['training_log_path']
 model_output_path = global_vars['model_output_path']
-pretrained_model = global_vars['pretrained_HG_model']
-content_file_path = global_vars['content_file']
+pretrained_model = global_vars['pretrained_model']
 
 print('Is GPU available?:', torch.cuda.is_available())
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
-tokenizer.pad_token = tokenizer.eos_token
+pretrained_tokenizer = GPT2Tokenizer.from_pretrained(pretrained_model)
 model = GPT2LMHeadModel.from_pretrained(pretrained_model).to(device)
+finetuned_model = GPT2LMHeadModel.from_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
 
-print('Loading Tokenized Batches from disk location...')
-tokenized_batches = Dataset.load_from_disk(Path(LLM_pretrained_path)/ 'train')
-print(tokenized_batches)
-
-# output = model.generate(tokenized_data, 
-#                         max_length=1024, 
-#                         do_sample=True, 
-#                         top_k=50, 
-#                         top_p=0.95, 
-#                         num_return_sequences=1)
-
-# generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
-# print(generated_text)
