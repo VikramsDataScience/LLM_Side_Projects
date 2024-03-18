@@ -34,27 +34,31 @@ content_file_path = global_vars['content_file']
 print('Is GPU available?:', torch.cuda.is_available())
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
+############# LOAD PRETRAINED TOKENIZER/MODEL AND DEFINE HYPERPARAMETERS #############
 tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
 tokenizer.pad_token = tokenizer.eos_token
 model = GPT2LMHeadModel.from_pretrained(pretrained_model).to(device)
+
+# Define Hyperparameters
 optimizer = optim.AdamW(model.parameters(), lr=0.001)
 scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
 
-print('Loading Tokenized Batches from disk location...')
+print('Loading upstream Tokenized Batches from disk location...')
 tokenized_batches = Dataset.load_from_disk(Path(LLM_pretrained_path)/ 'train')
 
 ############# DEFINE AND RUN TRAINING PIPELINE #############
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False, return_tensors='pt')
 
 # Define training arguments to be used by the Trainer
 training_args = TrainingArguments(per_device_train_batch_size=8,
-                                  num_train_epochs=3,
+                                  num_train_epochs=1,
                                   logging_dir=training_log_path,
                                   output_dir=model_output_path,
                                   auto_find_batch_size=True,
-                                  half_precision_backend=True)
+                                  gradient_accumulation_steps=64, # Occurs prior to the Optimizer, and affects the effective batch size and the frequency of optimization steps (can use between 2 to 32)
+                                  fp16=True) # Use Mixed Precision training (roughly equivalent to setting pytorch's 'autocast()' class in the training loop) to improve training loop time
 
-# Run the Trainer to enable Transfer Learning (i.e. fine tune the custom dataset)
+# Run the Trainer to enable Transfer Learning and fine tune based on the custom dataset
 trainer = Trainer(model=model,
                   args=training_args,
                   data_collator=data_collator,
@@ -64,4 +68,4 @@ trainer = Trainer(model=model,
 trainer.train()
 
 # Save finetuned model for downstream module
-model.save_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
+# model.save_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
