@@ -1,9 +1,9 @@
-from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments, TextDataset, GPT2Tokenizer, GPT2LMHeadModel
-from datasets import load_from_disk
+from transformers import AutoTokenizer, GPT2LMHeadModel
 import torch
 from pathlib import Path
 import logging
 import yaml
+import argparse
 
 logger = logging.getLogger('LLM_TrainTokenize')
 logger.setLevel(logging.ERROR)
@@ -26,12 +26,41 @@ except:
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
 training_log_path = global_vars['training_log_path']
 model_output_path = global_vars['model_output_path']
-pretrained_model = global_vars['pretrained_model']
+pretrained_model = global_vars['pretrained_HG_model']
+
+# Initialise argparse to accept and parse user prompts
+parser = argparse.ArgumentParser('Predictions_Scoring')
+parser.add_argument('--query', type=str, help='Please enter query string/prompt to generate a model\'s response',
+                    default='Write a job ad for a Senior Data Scientist')
+args = parser.parse_args()
 
 print('Is GPU available?:', torch.cuda.is_available())
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-pretrained_tokenizer = GPT2Tokenizer.from_pretrained(pretrained_model)
-model = GPT2LMHeadModel.from_pretrained(pretrained_model).to(device)
+tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
+tokenizer.pad_token = tokenizer.eos_token
+model = GPT2LMHeadModel.from_pretrained(pretrained_model)
+# Load the Finetuned model left by the upstream 'LLM_Finetune' module and mount to GPU
 finetuned_model = GPT2LMHeadModel.from_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
 
+def generate_text(prompt, max_length=50, temperature=0.7):
+    """
+    Modify the 'temperature' arg to stipulate the stochasticity of the model's generated response (i.e.
+    higher temperature will make the model's response less deterministic).
+    """
+    encoding = tokenizer.encode_plus(prompt, return_tensors='pt', padding=True)
+    input_ids = encoding['input_ids']
+    attention_mask = encoding['attention_mask']
+    
+    with torch.inference_mode():
+        output = finetuned_model.generate(input_ids, 
+                                          attention_mask=attention_mask, 
+                                          max_length=max_length, 
+                                          do_sample=True,
+                                          temperature=temperature)
+    
+    generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
+    return generated_text
+
+generated_response = generate_text(prompt=args.query)
+print('MODEL GENERATED RESPONSE:\n', generated_response)
