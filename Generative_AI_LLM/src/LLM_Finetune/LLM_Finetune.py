@@ -1,4 +1,4 @@
-from transformers import GPT2LMHeadModel, AutoTokenizer, TextDataset, DataCollatorForLanguageModeling, TrainingArguments, Trainer
+from transformers import GPT2LMHeadModel, AutoTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer
 from datasets import Dataset
 import torch
 import torch.optim as optim
@@ -46,8 +46,11 @@ scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
 print('Loading upstream Tokenized Batches from disk location...')
 tokenized_batches = Dataset.load_from_disk(Path(LLM_pretrained_path)/ 'train')
 
-############# DEFINE AND RUN TRAINING PIPELINE #############
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False, return_tensors='pt')
+############# DEFINE AND RUN TRAINING LOOP #############
+# Collate pretrained tokenizer into batches for training
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, 
+                                                mlm=False, 
+                                                return_tensors='pt')
 
 # Define training arguments to be used by the Trainer
 training_args = TrainingArguments(per_device_train_batch_size=8,
@@ -67,5 +70,6 @@ trainer = Trainer(model=model,
                   optimizers=(optimizer, scheduler.step()))
 trainer.train()
 
-# Save finetuned model for downstream module
-# model.save_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
+# Save finetuned model for downstream module)
+model.save_pretrained(Path(LLM_pretrained_path) / 'fine_tuned_LLM')
+print(f'Training loop completed! Model parameters saved in the following storage location:\n{Path(LLM_pretrained_path)}')

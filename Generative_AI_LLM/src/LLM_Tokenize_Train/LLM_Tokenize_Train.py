@@ -40,7 +40,6 @@ custom_text = load_dataset('text', data_files='C:/Sample Data/Job_Ad_QA_data/con
 
 def encode_batches(batch):
     tokenized_data = tokenizer(batch['text'], padding='max_length', truncation=True, return_tensors='pt')
-    
     return tokenized_data
 
 tokenized_data = custom_text.map(encode_batches, batched=True, batch_size=batch_size)
