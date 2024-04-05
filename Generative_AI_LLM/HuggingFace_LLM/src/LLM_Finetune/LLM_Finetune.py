@@ -1,9 +1,15 @@
+
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
 from transformers.optimization import get_linear_schedule_with_warmup
 from datasets import Dataset
 import evaluate
 import numpy as np
 import torch
+from transformers import GPT2LMHeadModel, AutoTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer
+from datasets import Dataset
+import torch
+import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
 from pathlib import Path
 import logging
 import yaml
@@ -58,6 +64,22 @@ def compute_metrics(eval_pred):
     predictions = np.argmax(logits, axis=-1)
     return metric.compute(predictions=predictions, references=labels)
 
+print('Is GPU available?:', torch.cuda.is_available())
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+############# LOAD PRETRAINED TOKENIZER/MODEL, CUSTOM DATA, AND DEFINE HYPERPARAMETERS #############
+tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
+tokenizer.pad_token = tokenizer.eos_token
+model = GPT2LMHeadModel.from_pretrained(pretrained_model).to(device)
+
+# Define Hyperparameters and load tokenized Train/Validate sets left by upstream 'LLM_Tokenize' module
+optimizer = optim.AdamW(model.parameters(), lr=0.001)
+scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
+
+train_set = Dataset.load_from_disk(Path(LLM_pretrained_path)/ 'train')
+validate_set = Dataset.load_from_disk(Path(LLM_pretrained_path) / 'validate')
+print('TRAIN SET:\n', train_set, 'VALIDATE SET:\n', validate_set)
+
 ############# DEFINE AND RUN TRAINING LOOP #############
 # Collate pretrained tokenizer into batches for training
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, 
@@ -79,6 +101,12 @@ training_args = TrainingArguments(per_device_train_batch_size=8,
                                   gradient_accumulation_steps=2, # Occurs prior to the Optimizer, and affects the effective batch size and the frequency of optimization steps (can use between 2 to 32)
                                 #   fp16=True, # Use Mixed Precision training (roughly equivalent to setting pytorch's 'autocast()' class in the training loop) to improve training loop time
                                   seed=seed) 
+                                  num_train_epochs=1.5,
+                                  logging_dir=training_log_path,
+                                  output_dir=model_output_path,
+                                  auto_find_batch_size=True,
+                                  gradient_accumulation_steps=64, # Occurs prior to the Optimizer, and affects the effective batch size and the frequency of optimization steps (can use between 2 to 32)
+                                  fp16=True) # Use Mixed Precision training (roughly equivalent to setting pytorch's 'autocast()' class in the training loop) to improve training loop time
 
 # Run the Trainer to enable Transfer Learning and fine tune based on the custom dataset
 trainer = Trainer(model=model,
@@ -114,6 +142,10 @@ class LRSchedulerCallback(TrainerCallback):
 
 lr_scheduler_callback = LRSchedulerCallback(scheduler)
 trainer.add_callback(lr_scheduler_callback)
+                  train_dataset=train_set,
+                  eval_dataset=validate_set,
+                  tokenizer=tokenizer,
+                  optimizers=(optimizer, scheduler.step()))
 trainer.train()
 
 # Save finetuned model for downstream module)
