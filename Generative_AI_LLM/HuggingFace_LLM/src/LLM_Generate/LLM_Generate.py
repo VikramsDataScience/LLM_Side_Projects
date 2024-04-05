@@ -8,7 +8,7 @@ import argparse
 logger = logging.getLogger('LLM_TrainTokenize')
 logger.setLevel(logging.ERROR)
 error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects/Error_Logs/LLM_TrainTokenize_log.log'))
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Error_Logs/LLM_TrainTokenize_log.log'))
 error_handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 error_handler.setFormatter(formatter)
@@ -16,7 +16,7 @@ logger.addHandler(error_handler)
 
 # Load the file paths and global variables from YAML config file
 try:
-    config_path = Path('C:/Users/Vikram Pande/Side_Projects/Generative_AI_LLM')
+    config_path = Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Generative_AI_LLM')
 
     with open(config_path / 'config.yml', 'r') as file:
         global_vars = yaml.safe_load(file)
