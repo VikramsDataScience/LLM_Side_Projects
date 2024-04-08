@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 import torch
 from pathlib import Path
 import logging
@@ -36,8 +36,9 @@ args = parser.parse_args()
 
 print('Is GPU available?:', torch.cuda.is_available())
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+torch.cuda.empty_cache()
 
-tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
+tokenizer = GPT2Tokenizer.from_pretrained(pretrained_model, padding_side='left')
 tokenizer.pad_token = tokenizer.eos_token
 model = GPT2LMHeadModel.from_pretrained(pretrained_model)
 # Load the Finetuned model left by the upstream 'LLM_Finetune' module and mount to GPU
@@ -55,7 +56,8 @@ def generate_text(prompt, max_length=50, temperature=0.7):
     with torch.inference_mode():
         output = finetuned_model.generate(input_ids, 
                                           attention_mask=attention_mask, 
-                                          max_length=max_length, 
+                                          max_length=max_length,
+                                          max_new_tokens=100,
                                           do_sample=True,
                                           temperature=temperature)
     
