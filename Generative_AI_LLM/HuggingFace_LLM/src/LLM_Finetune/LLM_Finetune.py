@@ -41,7 +41,7 @@ torch.cuda.empty_cache()
 tokenizer = GPT2Tokenizer.from_pretrained(pretrained_model)
 tokenizer.pad_token = tokenizer.eos_token
 model = GPT2LMHeadModel.from_pretrained(pretrained_model).to(device)
-metric = evaluate.load('accuracy')
+accuracy = evaluate.load('accuracy')
 
 # Define Hyperparameters and load tokenized Train/Validate sets left by upstream 'LLM_Tokenize' module
 train_set = Dataset.load_from_disk(Path(LLM_pretrained_path)/ 'train').shuffle(seed=seed)
@@ -49,14 +49,18 @@ validate_set = Dataset.load_from_disk(Path(LLM_pretrained_path) / 'validate').sh
 print('TRAIN SET:\n', train_set, '\nVALIDATE SET:\n', validate_set)
 
 # Perform train/validate on about half of the data to save on training time
-train_set_sample = train_set.select(range(45000))
-validate_set_sample = validate_set.select(range(5000))
+train_set_sample = train_set.select(range(100))
+validate_set_sample = validate_set.select(range(10))
 
 # Call compute on metric to calculate the accuracy of the predictions. Before passing the predictions to compute, the logits will need to be converted to predictions
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
     predictions = np.argmax(logits, axis=-1)
-    return metric.compute(predictions=predictions, references=labels)
+    
+    for preds, labs in zip(predictions, labels):
+        accuracy.add_batch(predictions=preds, 
+                                references=labs)
+    return accuracy.compute()
 
 ############# DEFINE AND RUN TRAINING LOOP #############
 # Collate pretrained tokenizer into batches for training
@@ -72,13 +76,13 @@ training_args = TrainingArguments(per_device_train_batch_size=8,
                                   evaluation_strategy='steps',
                                   num_train_epochs=3,
                                   eval_steps=1,
-                                  warmup_steps=3, # Should be about 20% of the 'num_train_epochs'
+                                  warmup_steps=1, # Should be about 20% (arg expects 'int', so you'll need to round up) of the 'num_train_epochs'
                                   logging_dir=training_log_path,
                                   output_dir=model_output_path,
                                   auto_find_batch_size=True,
                                   gradient_accumulation_steps=2, # Occurs prior to the Optimizer, and affects the effective batch size and the frequency of optimization steps (can use between 2 to 32)
-                                #   fp16=True, # Use Mixed Precision training (roughly equivalent to setting pytorch's 'autocast()' class in the training loop) to improve training loop time
-                                  seed=seed) 
+                                  fp16=True, # Use Mixed Precision training (roughly equivalent to setting pytorch's 'autocast()' class in the training loop) to improve training loop time
+                                  seed=seed)
 
 # Run the Trainer to enable Transfer Learning and fine tune based on the custom dataset
 trainer = Trainer(model=model,
@@ -114,8 +118,8 @@ class LRSchedulerCallback(TrainerCallback):
 
 lr_scheduler_callback = LRSchedulerCallback(scheduler)
 trainer.add_callback(lr_scheduler_callback)
-trainer.train()
+trainer.train(resume_from_checkpoint=None)
 
-# Save finetuned model for downstream module)
+# Save finetuned model for downstream module
 model.save_pretrained(Path(LLM_pretrained_path) / f'fine_tuned_LLM_{model_ver}')
-# print(f'Training loop completed! Model parameters saved in the following storage location:\nPath(LLM_pretrained_path) / \'fine_tuned_LLM_{model_ver}\'')
+print(f'Training loop completed! Model parameters saved in the following storage location:\n{Path(LLM_pretrained_path)} / \'fine_tuned_LLM_TEST_{model_ver}\'')

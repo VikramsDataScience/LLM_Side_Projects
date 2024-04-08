@@ -33,9 +33,6 @@ train_file = global_vars['train_file']
 validate_file = global_vars['validate_file']
 content_path = global_vars['content_path']
 
-print('Is GPU available?:', torch.cuda.is_available())
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
 tokenizer = GPT2Tokenizer.from_pretrained(pretrained_model)
 tokenizer.pad_token = tokenizer.eos_token
 
@@ -71,6 +68,7 @@ remove(validate_file)
 def max_sentence_length(file_path):
     """
     Reads a text file and returns the maximum length of characters in any sentence.
+
     IMPORTANT N.B.: ONLY USE THIS IN ACCORDANCE WITH THE ALLOWABLE 'MAX_LENGTH' OF YOUR CHOSEN
     PRE-TRAINED TOKENIZER. OTHERWISE DURING THE `LLM_FINETUNE` MODULE, THE INTERPRETER WILL RAISE
     'OUT OF RANGE' ERRORS. FOR INSTANCE, GPT2Tokenizer WILL ONLY ALLOW MAX_LENGTH=1024. SO, ONLY USE
@@ -104,7 +102,7 @@ def encode_batches(batch, max_length=1024):
                                truncation=True,
                                return_attention_mask=True,
                                max_length=max_length,
-                               return_tensors='pt').to(device)
+                               return_tensors='pt')
     return tokenized_data
 
 tokenized_data = custom_text.map(encode_batches, batched=True, batch_size=batch_size)
