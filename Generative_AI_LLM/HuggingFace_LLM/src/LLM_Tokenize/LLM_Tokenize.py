@@ -19,7 +19,6 @@ logger.addHandler(error_handler)
 # Load the file paths and global variables from YAML config file
 try:
     config_path = Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Generative_AI_LLM/HuggingFace_LLM')
-
     with open(config_path / 'config.yml', 'r') as file:
         global_vars = yaml.safe_load(file)
 except:
@@ -29,6 +28,9 @@ LLM_pretrained_path = global_vars['LLM_pretrained_path']
 batch_size = global_vars['batch_size']
 pretrained_model = global_vars['pretrained_HG_model']
 seed = global_vars['seed']
+training_log_path = global_vars['training_log_path']
+pretrained_model = global_vars['pretrained_HG_model']
+content_file_path = global_vars['content_file']
 train_file = global_vars['train_file']
 validate_file = global_vars['validate_file']
 content_path = global_vars['content_path']
@@ -95,7 +97,7 @@ def max_sentence_length(file_path):
 # max_length = max_sentence_length(Path(content_path) / 'content_cleaned.txt')
 
 ############# DEFINE AND RUN TOKENIZER #############
-def encode_batches(batch, max_length=1024):
+def encode_batches(batch, max_length=max_length):
     
     tokenized_data = tokenizer(batch['text'], 
                                padding='max_length', 

@@ -8,6 +8,9 @@ model_output_path: 'C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Model_Out
 training_log_path: 'C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Training_Logs'
 pretrained_HG_model: 'gpt2'
 seed: 314
+model_output_path: 'C:/Users/Vikram Pande/Side_Projects/Model_Output'
+training_log_path: 'C:/Users/Vikram Pande/Side_Projects/Training_Logs'
+pretrained_HG_model: 'gpt2'
 learning_rate: 1e-04
 batch_size: 100
 num_epochs: 20
