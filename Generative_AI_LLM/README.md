@@ -5,3 +5,6 @@ To extend on that initial foray into language models this project will aim to bu
 
 ## On Text Generation Inference (TGI)
 Text Generation Inference in the context of building a chatbot refers to the process of generating text responses based on input received from a user during a conversation. It involves utilizing Machine Learning models, such as Natural Language Processing (NLP) or Deep Learning models, to analyze the input text, understand its meaning, and generate an appropriate and coherent response.
+
+## Some technical details
+- Implemented the Linear Learning Rate Warmup that's been developed by the authors of the <a href='https://arxiv.org/pdf/2402.00838.pdf'> `OLMo: Accelerating the Science of Language Models`</a> research paper. HuggingFace's Transformers library has an implementation of this, so I used that implementation in the `LLM_Finetune` module.
