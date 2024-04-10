@@ -1,10 +1,3 @@
-
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
-from transformers.optimization import get_linear_schedule_with_warmup
-from datasets import Dataset
-import evaluate
-import numpy as np
-import torch
 from transformers import GPT2LMHeadModel, AutoTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer
 from datasets import Dataset
 import torch
@@ -32,11 +25,12 @@ try:
 except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
-model_ver = global_vars['model_ver']
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
 training_log_path = global_vars['training_log_path']
 model_output_path = global_vars['model_output_path']
 pretrained_model = global_vars['pretrained_HG_model']
+
+############# LOAD PRETRAINED TOKENIZER/MODEL AND DEFINE HYPERPARAMETERS #############
 seed = global_vars['seed']
 
 print('Is GPU available?:', torch.cuda.is_available())
@@ -105,13 +99,6 @@ training_args = TrainingArguments(per_device_train_batch_size=8,
                                   gradient_accumulation_steps=2, # Occurs prior to the Optimizer, and affects the effective batch size and the frequency of optimization steps (can use between 2 to 32)
                                   fp16=True, # Use Mixed Precision training (roughly equivalent to setting pytorch's 'autocast()' class in the training loop) to improve training loop time
                                   seed=seed)
-                                  seed=seed) 
-                                  num_train_epochs=1.5,
-                                  logging_dir=training_log_path,
-                                  output_dir=model_output_path,
-                                  auto_find_batch_size=True,
-                                  gradient_accumulation_steps=64, # Occurs prior to the Optimizer, and affects the effective batch size and the frequency of optimization steps (can use between 2 to 32)
-                                  fp16=True) # Use Mixed Precision training (roughly equivalent to setting pytorch's 'autocast()' class in the training loop) to improve training loop time
 
 # Run the Trainer to enable Transfer Learning and fine tune based on the custom dataset
 trainer = Trainer(model=model,
