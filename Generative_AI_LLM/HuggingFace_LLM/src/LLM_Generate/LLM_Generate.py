@@ -44,16 +44,20 @@ tokenizer.pad_token = tokenizer.eos_token
 # Load the Finetuned model left by the upstream 'LLM_Finetune' module and mount to GPU
 finetuned_model = GPT2LMHeadModel.from_pretrained(Path(LLM_pretrained_path) / f'fine_tuned_LLM_{model_ver}').to(device)
 
-def generate_text(prompt, temperature=0.6, top_k=0, top_p=0.90, max_new_tokens=200):
+def generate_text(prompt, context='', temperature=0.6, top_k=0, top_p=0.90, max_new_tokens=200):
     """
     - 'temperature': Modify the 'temperature' arg to stipulate the stochasticity of the model's generated response by 
     adjusting the value of the applied Softmax layer from the converted logit (i.e. higher temperature will make the 
-    model's response less deterministic). This arg is best used in conjunction with 'top_k' as a scaling method to 
-    temper the number of top_k n-grams that are part of the sampling scheme.
-    - 'top_k': 
-    - 'top_p': 
+    model's response less deterministic). This arg can be used in conjunction with 'top_k' as a scaling method to 
+    temper the number of top_k n-grams that are part of the sampling scheme. However, experimentation has shown that
+    'top_p' can be a better choice and temperature doesn't have to be used at all.
+    - 'top_k' (requires 'do_sample'=True): In Top-K sampling, the K most likely next words are filtered and the probability mass is 
+    redistributed among only those K next words.
+    - 'top_p' (requires 'do_sample'=True): The 'nucleus' sampling method works by sampling only from the most likely K words. Top-p sampling 
+    chooses from the smallest possible set of words whose cumulative probability exceeds the probability p.
     """
-    encoding = tokenizer.encode_plus(prompt, return_tensors='pt', padding=True).to(device)
+    input_text = f'{context} {prompt}'
+    encoding = tokenizer.encode_plus(input_text, return_tensors='pt', padding=True).to(device)
     input_ids = encoding['input_ids']
     attention_mask = encoding['attention_mask']
     # set_seed(seed) # Set a seed if you wish to reproduce results
@@ -69,10 +73,17 @@ def generate_text(prompt, temperature=0.6, top_k=0, top_p=0.90, max_new_tokens=2
     
     generated_text = tokenizer.batch_decode(output, skip_special_tokens=True)[0]
     # Strip user query from model generated response
-    generated_text = ''.join(generated_text[len(str(prompt)):])
+    generated_text = ''.join(generated_text[len(str(input_text)) + 1:])
     print('YOUR QUERY:\n', prompt)
 
     return generated_text
 
-generated_response = generate_text(prompt=args.query)
-print('MODEL GENERATED RESPONSE:\n', generated_response)
+conversation_context = ''
+
+while True:
+    user_input = input('Reply to chatbot (CTRL+C to exit chat): ')
+    generated_response = generate_text(prompt=user_input, context=conversation_context)
+    print('MODEL GENERATED RESPONSE:\n', generated_response)
+
+    # Update context
+    conversation_context = f'{conversation_context} {user_input} {generated_response}'
