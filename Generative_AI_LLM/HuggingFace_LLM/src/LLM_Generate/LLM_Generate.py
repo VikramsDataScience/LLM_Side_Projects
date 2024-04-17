@@ -81,7 +81,9 @@ def generate_text(prompt, context='', temperature=0.6, top_k=0, top_p=0.90, max_
 conversation_context = ''
 
 while True:
-    user_input = input('Reply to chatbot (CTRL+C to exit chat): ')
+    user_input = input('Reply to chatbot (type \'EXIT CHAT!\' to exit): ')
+    if user_input.upper() == 'EXIT CHAT!':
+        break
     generated_response = generate_text(prompt=user_input, context=conversation_context)
     print('MODEL GENERATED RESPONSE:\n', generated_response)
 
