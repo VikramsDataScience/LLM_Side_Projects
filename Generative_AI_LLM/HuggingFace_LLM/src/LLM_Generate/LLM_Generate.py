@@ -3,12 +3,11 @@ import torch
 from pathlib import Path
 import logging
 import yaml
-import argparse
 
-logger = logging.getLogger('LLM_TrainTokenize')
+logger = logging.getLogger('LLM_Generate')
 logger.setLevel(logging.ERROR)
 error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Error_Logs/LLM_TrainTokenize_log.log'))
+error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Error_Logs/LLM_Generate.log'))
 error_handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 error_handler.setFormatter(formatter)
@@ -30,12 +29,6 @@ pretrained_model = global_vars['pretrained_HG_model']
 model_ver = global_vars['model_ver']
 seed = global_vars['seed']
 
-# Initialise argparse to accept and parse user prompts
-parser = argparse.ArgumentParser('Predictions_Scoring')
-parser.add_argument('--query', type=str, help='Please enter query string/prompt to generate a model\'s response',
-                    default='Write a job ad for a Senior Data Scientist')
-args = parser.parse_args()
-
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 torch.cuda.empty_cache()
 
@@ -44,7 +37,7 @@ tokenizer.pad_token = tokenizer.eos_token
 # Load the Finetuned model left by the upstream 'LLM_Finetune' module and mount to GPU
 finetuned_model = GPT2LMHeadModel.from_pretrained(Path(LLM_pretrained_path) / f'fine_tuned_LLM_{model_ver}').to(device)
 
-def generate_text(prompt, context='', temperature=0.6, top_k=0, top_p=0.90, max_new_tokens=200):
+def generate_text(prompt:str, context:str, temperature=0.6, top_k=0, top_p=0.90, max_new_tokens=200):
     """
     - 'temperature': Modify the 'temperature' arg to stipulate the stochasticity of the model's generated response by 
     adjusting the value of the applied Softmax layer from the converted logit (i.e. higher temperature will make the 
