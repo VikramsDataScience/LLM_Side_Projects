@@ -48,6 +48,8 @@ def generate_text(prompt:str, context:str, temperature=0.6, top_k=0, top_p=0.90,
     redistributed among only those K next words.
     - 'top_p' (requires 'do_sample'=True): The 'nucleus' sampling method works by sampling only from the most likely K words. Top-p sampling 
     chooses from the smallest possible set of words whose cumulative probability exceeds the probability p.
+    - 'no_repeat_ngram_size': The most common n-grams penalty makes sure that no n-gram appears twice by manually setting the probability 
+    of next words that could create an already seen n-gram to 0.
     """
     input_text = f'{context} {prompt}'
     encoding = tokenizer.encode_plus(input_text, return_tensors='pt', padding=True).to(device)
@@ -56,18 +58,20 @@ def generate_text(prompt:str, context:str, temperature=0.6, top_k=0, top_p=0.90,
     # set_seed(seed) # Set a seed if you wish to reproduce results
     
     output = finetuned_model.generate(input_ids, 
-                                        attention_mask=attention_mask, 
-                                        max_new_tokens=max_new_tokens,
-                                        do_sample=True,
-                                    #   temperature=temperature,
-                                        top_k=top_k,
-                                        top_p=top_p
-                                        )
+                                      attention_mask=attention_mask,
+                                      max_new_tokens=max_new_tokens,
+                                      do_sample=True,
+                                      temperature=temperature,
+                                      top_k=top_k,
+                                      top_p=top_p,
+                                      no_repeat_ngram_size=2,
+                                      early_stopping=True
+                                      )
     
     generated_text = tokenizer.batch_decode(output, skip_special_tokens=True)[0]
     # Strip user query from model generated response
     generated_text = ''.join(generated_text[len(str(input_text)) + 1:])
-    print('YOUR QUERY:\n', prompt)
+    print('\nYOUR QUERY:\n', prompt)
 
     return generated_text
 
@@ -75,10 +79,11 @@ conversation_context = ''
 
 while True:
     user_input = input('Reply to chatbot (type \'EXIT CHAT!\' to exit): ')
+
     if user_input.upper() == 'EXIT CHAT!':
         break
+    
     generated_response = generate_text(prompt=user_input, context=conversation_context)
-    print('MODEL GENERATED RESPONSE:\n', generated_response)
-
+    print('\nMODEL GENERATED RESPONSE:\n', generated_response)
     # Update context
     conversation_context = f'{conversation_context} {user_input} {generated_response}'
