@@ -1,7 +1,6 @@
 from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
-from transformers import AutoTokenizer, GPT2LMHeadModel
-from datasets import Dataset
-import torch
+from langchain_core.prompts import PromptTemplate
+from transformers import AutoTokenizer
 from pathlib import Path
 import logging
 import yaml
@@ -34,4 +33,19 @@ tokenizer.save_pretrained(model_name)
 
 hf = HuggingFacePipeline.from_model_id(model_id=model_name,
                                        task='text-generation',
+                                       pipeline_kwargs={'max_new_tokens': 200},
+                                       model_kwargs={'temperature': 0.6,
+                                                     'top_p': 0.9,
+                                                     'do_sample': True,
+                                                     'no_repeat_ngram_size': 2},
                                        device=0)
+
+# Create template and build chain
+template = """
+        QUESTION: {question}
+        ANSWER: """
+prompt = PromptTemplate.from_template(template)
+chain = prompt | hf
+
+question = 'Write a job ad for a Senior Data Scientist'
+print(chain.invoke({'question': question}))
