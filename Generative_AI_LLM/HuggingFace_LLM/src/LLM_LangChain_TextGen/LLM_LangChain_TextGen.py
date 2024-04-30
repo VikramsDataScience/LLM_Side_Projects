@@ -38,7 +38,7 @@ hf = HuggingFacePipeline.from_model_id(model_id=model_name,
                                                      'top_p': 0.9,
                                                      'do_sample': True,
                                                      'no_repeat_ngram_size': 2},
-                                       device=0)
+                                       device_map='auto') # Can replace with 'device=0' to explicitly specify GPU
 
 # Create template and build chain
 template = """
