@@ -1,4 +1,6 @@
 from pinecone import Pinecone, ServerlessSpec
+from langchain.vectorstores import pinecone
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from os import getenv
 from dotenv import load_dotenv
 from pathlib import Path
@@ -31,17 +33,36 @@ index_name = 'job-ad-index'
 # Load API Key from ENV file, initialise connection with Pinecone and create an index
 load_dotenv(dotenv_path=API_Key_path)
 api_key = getenv('PINECONE_API_KEY')
-pc = Pinecone(api_key=api_key, pool_threads=30) # Set 'pool_threads' to limit server requests during the batch upsert phase
+pc = Pinecone(api_key=api_key)
 
-pc.create_index(name=index_name,
-                dimension=128,
-                metric='dotproduct',
-                spec=ServerlessSpec(
-                    cloud='aws',
-                    region='us-east-1'
-                ))
+if index_name not in pc.list_indexes().names():
+    print(f'{index_name} not found. Creating index...')
+    pc.create_index(name=index_name,
+                    dimension=128,
+                    metric='dotproduct',
+                    spec=ServerlessSpec(
+                        cloud='aws',
+                        region='us-east-1'
+                    ))
 
 index = pc.Index(index_name)
 
-with open(Path(content_path) / 'content_cleaned.txt', 'r', encoding='utf-8') as file:
-    text_data = file.read()
+def text_chunking(file_path, chunk_size=1000, chunk_overlap=0):
+    """
+    Perform chunking on a TXT file.
+    """
+    with open(file_path, 'r', encoding='utf-8') as file:
+        text_file = file.read()
+
+    # Split text into chunks
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size,
+                                                   chunk_overlap=chunk_overlap)
+    chunks = text_splitter.split_text(text_file)
+    print(chunks[:2])
+
+    return chunks
+
+text_chunks = text_chunking(file_path=Path(content_path) / 'content_cleaned.txt')
+
+# Create Vector Store
+pinecone.Pinecone.from_texts()
