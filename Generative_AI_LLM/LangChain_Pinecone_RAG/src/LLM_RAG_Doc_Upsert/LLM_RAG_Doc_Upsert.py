@@ -1,6 +1,7 @@
 from pinecone import Pinecone, ServerlessSpec
-from langchain.vectorstores import pinecone
+from langchain_community.vectorstores import pinecone
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from sentence_transformers import SentenceTransformer
 from os import getenv
 from dotenv import load_dotenv
 from pathlib import Path
@@ -32,8 +33,8 @@ index_name = 'job-ad-index'
 
 # Load API Key from ENV file, initialise connection with Pinecone and create an index
 load_dotenv(dotenv_path=API_Key_path)
-api_key = getenv('PINECONE_API_KEY')
-pc = Pinecone(api_key=api_key)
+pineconce_api_key = getenv('PINECONE_API_KEY')
+pc = Pinecone(api_key=pineconce_api_key)
 
 if index_name not in pc.list_indexes().names():
     print(f'{index_name} not found. Creating index...')
@@ -49,20 +50,36 @@ index = pc.Index(index_name)
 
 def text_chunking(file_path, chunk_size=1000, chunk_overlap=0):
     """
-    Perform chunking on a TXT file.
+    Perform chunking on a sample of text from a TXT file.
     """
     with open(file_path, 'r', encoding='utf-8') as file:
         text_file = file.read()
 
+    # Split corpus into much smaller sample
+    split_ratio = 0.02
+    split_idx = int(split_ratio * len(text_file))
+    sample_set = text_file[:split_idx]
+
     # Split text into chunks
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size,
                                                    chunk_overlap=chunk_overlap)
-    chunks = text_splitter.split_text(text_file)
+    chunks = text_splitter.split_text(sample_set)
+
+    # Verify doc chunks
     print(chunks[:2])
 
     return chunks
 
-text_chunks = text_chunking(file_path=Path(content_path) / 'content_cleaned.txt')
-
 # Create Vector Store
-pinecone.Pinecone.from_texts()
+def create_vectors(index_name):
+    """
+    For a given 'index_name', create vectorised embeddings.
+    """
+    embeddings = SentenceTransformer('all-MiniLM-L6-v2')
+    vectors = pinecone.Pinecone.from_existing_index(index_name=index_name, embedding=embeddings)
+    print(f'Embeddings for Index: \'{index_name}\' successfully upserted!')
+
+    return vectors
+
+text_chunks = text_chunking(file_path=Path(content_path) / 'content_cleaned.txt')
+# vectors = create_vectors(index_name)
