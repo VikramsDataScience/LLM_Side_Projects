@@ -1,7 +1,7 @@
 from pinecone import Pinecone, ServerlessSpec
-from langchain_community.vectorstores import pinecone
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+import pinecone
 from sentence_transformers import SentenceTransformer
+import itertools
 from os import getenv
 from dotenv import load_dotenv
 from pathlib import Path
@@ -33,8 +33,8 @@ index_name = 'job-ad-index'
 
 # Load API Key from ENV file, initialise connection with Pinecone and create an index
 load_dotenv(dotenv_path=API_Key_path)
-pineconce_api_key = getenv('PINECONE_API_KEY')
-pc = Pinecone(api_key=pineconce_api_key)
+pinecone_api_key = getenv('PINECONE_API_KEY')
+pc = Pinecone(api_key=pinecone_api_key)
 
 if index_name not in pc.list_indexes().names():
     print(f'{index_name} not found. Creating index...')
@@ -48,29 +48,41 @@ if index_name not in pc.list_indexes().names():
 
 index = pc.Index(index_name)
 
-def text_chunking(file_path, chunk_size=1000, chunk_overlap=0):
+# Text chunking
+def text_chunking(file_path, chunk_size=1000, batch_size=batch_size):
     """
-    Perform chunking on a sample of text from a TXT file.
+    Perform chunking as an iterable on a sample of text from a TXT file that is of a given 
+    batch_size. Pinecone best practice indicates max batch_size=100.
     """
     with open(file_path, 'r', encoding='utf-8') as file:
         text_file = file.read()
 
     # Split corpus into much smaller sample
-    split_ratio = 0.02
+    chunk_id = 0
+    split_ratio = 0.0001
     split_idx = int(split_ratio * len(text_file))
     sample_set = text_file[:split_idx]
+    print('TOTAL NUMBER OF CHARACTERS TO BE UPSERTED: ', len(sample_set))
 
-    # Split text into chunks
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size,
-                                                   chunk_overlap=chunk_overlap)
-    chunks = text_splitter.split_text(sample_set)
+    for i in range(0, len(sample_set), chunk_size):
+        chunk = sample_set[i: i + chunk_size]
+        # Yield tuple of 'chunk_id' and 'chunk' of text
+        yield (f'chunk-{chunk_id}', chunk)
+        chunk_id += 1
 
-    # Verify doc chunks
-    print(chunks[:2])
+# Helper function that defines an iterable
+def chunks(iterable, batch_size=batch_size):
+    """
+    Helper function to break an iterable into 'batch_size' chunks.
+    This was derived from Pinecone's documentation 
+    (https://docs.pinecone.io/guides/data/upsert-data#upsert-records-in-batches)
+    """
+    it = iter(iterable)
+    chunk = tuple(itertools.islice(it, batch_size))
+    while chunk:
+        yield chunk
+        chunk = tuple(itertools.islice(it, batch_size))
 
-    return chunks
-
-# Create Vector Store
 def create_vectors(index_name):
     """
     For a given 'index_name', create vectorised embeddings.
@@ -81,5 +93,12 @@ def create_vectors(index_name):
 
     return vectors
 
-text_chunks = text_chunking(file_path=Path(content_path) / 'content_cleaned.txt')
-# vectors = create_vectors(index_name)
+# Generate chunk_id/chunk pairs
+chunked_data = text_chunking(file_path=Path(content_path) / 'content_cleaned.txt')
+
+for batch in chunks(chunked_data, batch_size=batch_size):
+    index.upsert(vectors=[batch])
+    print(f'Length of batch {len(batch)} upserted to Pinecone index name: \'{index_name}\'')
+        # Once Upserting is complete, print to verify index's namespaces, dimensions, vector_count, etc.
+        # print(f'Embeddings for Index: \'{index_name}\' successfully upserted!\n', 
+        #         f'STATS FOR \'{index_name}\':\n', index.describe_index_stats())
