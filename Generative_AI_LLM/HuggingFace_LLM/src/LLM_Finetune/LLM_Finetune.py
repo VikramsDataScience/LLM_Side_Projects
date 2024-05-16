@@ -1,5 +1,5 @@
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
-from transformers.optimization import get_linear_schedule_with_warmup
+from transformers.optimization import get_linear_schedule_with_warmup, get_cosine_with_hard_restarts_schedule_with_warmup
 from datasets import Dataset
 import torch
 from pathlib import Path
@@ -82,8 +82,8 @@ optimizer = trainer.create_optimizer()
 num_training_steps = len(trainer.get_train_dataloader()) * training_args.num_train_epochs
 num_eval_steps = len(trainer.get_eval_dataloader()) * training_args.eval_steps
 
-# Define Learning Rate Scheduler with Linear Warmup
-scheduler = get_linear_schedule_with_warmup(optimizer=optimizer,
+# Define Learning Rate Scheduler with Linear Warmup and Cosine Decay (for Linear Warmup and Linear Decay please use the 'get_linear_schedule_with_warmup()' method)
+scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer=optimizer,
                                             num_warmup_steps=training_args.warmup_steps,
                                             num_training_steps=num_training_steps)
 
