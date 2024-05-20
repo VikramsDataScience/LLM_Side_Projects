@@ -1,0 +1,4 @@
+model_ver: 0.01
+seed: 314
+content_path: 'C:/Sample Data/Ecommerce_Churn_Data/ECommerce_Dataset.xlsx'
+data_path: 'C:/Sample Data/Ecommerce_Churn_Data'
