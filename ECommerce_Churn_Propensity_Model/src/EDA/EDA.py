@@ -2,6 +2,8 @@ from os.path import exists
 import pandas as pd
 from pathlib import Path
 from ydata_profiling import ProfileReport
+import phik
+from phik import report
 import yaml
 
 # Load the file paths and global variables from YAML config file
@@ -28,9 +30,7 @@ if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
                 'Gender': 'categorical',
                 'MaritalStatus': 'categorical',
                 'PreferredLoginDevice': 'categorical',
-                'CityTier': 'categorical',
                 'PreferredPaymentMode': 'categorical',
-                'SatisfactionScore': 'categorical',
                 'PreferedOrderCat': 'categorical'}
 
     profile_report = ProfileReport(df, 
@@ -43,3 +43,22 @@ if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
                                     explorative=True)
 
     profile_report.to_file(Path(data_path) / 'EDA_Profiling_Report.html')
+
+# If the Phi K Correlation report doesn't exist, generate the PDF
+if not exists(Path(data_path) / 'phi_k_report.pdf'):
+    # Define schema
+    df_schema = {'Churn': 'categorical',
+                'Complain': 'categorical',
+                'CouponUsed': 'categorical',
+                'Gender': 'categorical',
+                'MaritalStatus': 'categorical',
+                'PreferredLoginDevice': 'categorical',
+                'PreferredPaymentMode': 'categorical',
+                'PreferedOrderCat': 'categorical',
+                'SatisfactionScore': 'ordinal',
+                'CityTier': 'ordinal'}
+    
+    phik.phik_matrix(df, )
+    report.correlation_report(df, 
+                              correlation_threshold=0.5,
+                              pdf_file_name=Path(data_path) / 'phi_k_report.pdf')
