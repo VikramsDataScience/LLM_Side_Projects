@@ -1,5 +1,6 @@
 from os.path import exists
 import pandas as pd
+from pandas.api.types import IntervalDtype
 from pathlib import Path
 from ydata_profiling import ProfileReport
 import phik
@@ -38,14 +39,14 @@ if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
                                     type_schema=df_schema,
                                     correlations={'phi_k': {'calculate': True,
                                                             'threshold': 0.5,
-                                                            'warn_high_correlations': True}}, # Since there are 10 categorical variables, use Phi K to calculate correlations between them. Correlations >=0.5 carry high risk for modelling
+                                                            'warn_high_correlations': True}}, # Since there are 10 categorical variables, use Phi K to calculate correlations between them
                                     tsmode=False, 
                                     explorative=True)
 
     profile_report.to_file(Path(data_path) / 'EDA_Profiling_Report.html')
 
-# If the Phi K Correlation report doesn't exist, generate the PDF
-if not exists(Path(data_path) / 'phi_k_report.pdf'):
+# If the Phi K Correlation report or the Phi K Correlation Matrix doesn't exist, generate the PDF
+if not exists(Path(data_path) / 'phi_k_report.pdf') or not exists(Path(data_path) / 'phi_k_matrix.csv'):
     # Define schema
     df_schema = {'Churn': 'categorical',
                 'Complain': 'categorical',
@@ -56,9 +57,13 @@ if not exists(Path(data_path) / 'phi_k_report.pdf'):
                 'PreferredPaymentMode': 'categorical',
                 'PreferedOrderCat': 'categorical',
                 'SatisfactionScore': 'ordinal',
-                'CityTier': 'ordinal'}
+                'CityTier': 'ordinal',
+                'WarehouseToHome': 'interval',
+                'Tenure': 'interval'}
     
-    phik.phik_matrix(df, )
+    interval_cols = [col for col, v in df_schema.items() if v=='interval' and col in df.columns]
+
+    phik.phik_matrix(df, interval_cols=interval_cols).to_csv(Path(data_path) / 'phi_k_matrix.csv')
     report.correlation_report(df, 
-                              correlation_threshold=0.5,
+                              correlation_threshold=0.5, # In Phi K, correlations >=0.5 carry high risk for modelling
                               pdf_file_name=Path(data_path) / 'phi_k_report.pdf')
