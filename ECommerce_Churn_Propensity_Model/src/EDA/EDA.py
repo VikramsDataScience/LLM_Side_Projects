@@ -1,6 +1,7 @@
 from os.path import exists
 import pandas as pd
-from pandas.api.types import IntervalDtype
+from scipy.stats import skew
+import numpy as np
 from pathlib import Path
 from ydata_profiling import ProfileReport
 import phik
@@ -20,7 +21,25 @@ content_file = global_vars['content_path']
 data_path = global_vars['data_path']
 
 df = pd.read_excel(Path(content_file), sheet_name=1)
+columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder']
+# Cast previously identified columns as integers and fill NaN values with 0s
+df[columns] = df[columns].fillna(0).astype(int)
 print(df)
+
+def doanes_formula(data):
+    """
+    To aid in the preparation for the correct binning of Intervals prior to the calculation of Phi K Correlation,
+    I've opted to use Doane's Formula to determine the Bin sizes of the intervals. Since I couldn't find a 
+    Python library for the formula, I've come up with this implementation of Doane's Formula.
+      Please refer to the 'EDA_Insights.md' file for a mathematical explanation of the formula and the data 
+    justifications behind selecting Doane's Formula for calculating bin sizes.
+    """
+    n = len(data)
+    g1 = skew(data)
+    sigma_g1 = np.sqrt((6*(n - 2)) / ((n + 1)*(n + 3)))
+    k = 1 + np.log2(n) + np.log2(1 + abs(g1) / sigma_g1)
+
+    return int(np.ceil(k))
 
 # If the EDA profiling report doesn't exist, generate report as an HTML document
 if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
@@ -67,3 +86,4 @@ if not exists(Path(data_path) / 'phi_k_report.pdf') or not exists(Path(data_path
     report.correlation_report(df, 
                               correlation_threshold=0.5, # In Phi K, correlations >=0.5 carry high risk for modelling
                               pdf_file_name=Path(data_path) / 'phi_k_report.pdf')
+print(doanes_formula(df['WarehouseToHome']))
