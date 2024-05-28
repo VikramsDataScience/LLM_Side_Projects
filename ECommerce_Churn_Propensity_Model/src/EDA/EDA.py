@@ -6,6 +6,7 @@ from pathlib import Path
 from ydata_profiling import ProfileReport
 import phik
 from phik import report
+import json
 import yaml
 
 # Load the file paths and global variables from YAML config file
@@ -21,18 +22,24 @@ content_file = global_vars['content_path']
 data_path = global_vars['data_path']
 
 df = pd.read_excel(Path(content_file), sheet_name=1)
-columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder']
-# Cast previously identified columns as integers and fill NaN values with 0s
-df[columns] = df[columns].fillna(0).astype(int)
+
+# Define columns for casting and interval definitions
+float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder']
+interval_cols = ['WarehouseToHome', 'Tenure']
+interval_dicts = {}
+
+# Cast float_columns as integers and fill NaN values with 0s
+df[float_columns] = df[float_columns].fillna(0).astype(int)
 print(df)
 
-def doanes_formula(data):
+def doanes_formula(data) -> int:
     """
     To aid in the preparation for the correct binning of Intervals prior to the calculation of Phi K Correlation,
     I've opted to use Doane's Formula to determine the Bin sizes of the intervals. Since I couldn't find a 
     Python library for the formula, I've come up with this implementation of Doane's Formula.
       Please refer to the 'EDA_Insights.md' file for a mathematical explanation of the formula and the data 
     justifications behind selecting Doane's Formula for calculating bin sizes.
+      This function will return the bin length as a rounded up integer.
     """
     n = len(data)
     g1 = skew(data)
@@ -41,6 +48,7 @@ def doanes_formula(data):
 
     return int(np.ceil(k))
 
+########## Y-Data Profiling ##########
 # If the EDA profiling report doesn't exist, generate report as an HTML document
 if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
     # Explicitly declare categorical variables to assist y-data's report generation (everything else in the dataframe y-data can infer)
@@ -64,26 +72,31 @@ if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
 
     profile_report.to_file(Path(data_path) / 'EDA_Profiling_Report.html')
 
+########## Phi K Correlation calculation and report generation ##########
+# Apply Doane's Formula to calculate and store bin sizes in a List structure as prepartion for Phi K Correlation
+for col in interval_cols:
+    bin_len = doanes_formula(df[col])
+    intervals = {
+    col: bin_len
+    }
+
+    interval_dicts.update(intervals)
+
+with open('intervals.json', 'w') as file:
+    json.dump(interval_dicts, 
+              file, 
+              indent=4, 
+              sort_keys=True)
+
+print(interval_dicts)
+
 # If the Phi K Correlation report or the Phi K Correlation Matrix doesn't exist, generate the PDF
 if not exists(Path(data_path) / 'phi_k_report.pdf') or not exists(Path(data_path) / 'phi_k_matrix.csv'):
-    # Define schema
-    df_schema = {'Churn': 'categorical',
-                'Complain': 'categorical',
-                'CouponUsed': 'categorical',
-                'Gender': 'categorical',
-                'MaritalStatus': 'categorical',
-                'PreferredLoginDevice': 'categorical',
-                'PreferredPaymentMode': 'categorical',
-                'PreferedOrderCat': 'categorical',
-                'SatisfactionScore': 'ordinal',
-                'CityTier': 'ordinal',
-                'WarehouseToHome': 'interval',
-                'Tenure': 'interval'}
-    
-    interval_cols = [col for col, v in df_schema.items() if v=='interval' and col in df.columns]
 
-    phik.phik_matrix(df, interval_cols=interval_cols).to_csv(Path(data_path) / 'phi_k_matrix.csv')
+    phik.phik_matrix(df, 
+                     bins=interval_dicts, 
+                     interval_cols=interval_cols).to_csv(Path(data_path) / 'phi_k_matrix.csv')
+    
     report.correlation_report(df, 
                               correlation_threshold=0.5, # In Phi K, correlations >=0.5 carry high risk for modelling
                               pdf_file_name=Path(data_path) / 'phi_k_report.pdf')
-print(doanes_formula(df['WarehouseToHome']))
