@@ -4,9 +4,7 @@ from scipy.stats import skew
 import numpy as np
 from pathlib import Path
 from ydata_profiling import ProfileReport
-import phik
-from phik import report
-import json
+from phik import report, phik_matrix, significance_matrix
 import yaml
 
 # Load the file paths and global variables from YAML config file
@@ -28,7 +26,7 @@ float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'Co
 interval_cols = ['WarehouseToHome', 'Tenure']
 interval_dicts = {}
 
-# Cast float_columns as integers and fill NaN values with 0s
+# Cast float_columns as integers and impute NaN values with 0s
 df[float_columns] = df[float_columns].fillna(0).astype(int)
 print(df)
 
@@ -37,16 +35,16 @@ def doanes_formula(data) -> int:
     To aid in the preparation for the correct binning of Intervals prior to the calculation of Phi K Correlation,
     I've opted to use Doane's Formula to determine the Bin sizes of the intervals. Since I couldn't find a 
     Python library for the formula, I've come up with this implementation of Doane's Formula.
-      Please refer to the 'EDA_Insights.md' file for a mathematical explanation of the formula and the data 
-    justifications behind selecting Doane's Formula for calculating bin sizes.
-      This function will return the bin length as a rounded up integer.
+      Please refer to the 'README.md' file (in the EDA folder) for a mathematical explanation of the formula 
+    and the data justifications behind selecting Doane's Formula for calculating bin sizes.
+      This function will return the bin length as a truncated integer.
     """
     n = len(data)
     g1 = skew(data)
     sigma_g1 = np.sqrt((6*(n - 2)) / ((n + 1)*(n + 3)))
     k = 1 + np.log2(n) + np.log2(1 + abs(g1) / sigma_g1)
 
-    return int(np.ceil(k))
+    return int(np.trunc(k))
 
 ########## Y-Data Profiling ##########
 # If the EDA profiling report doesn't exist, generate report as an HTML document
@@ -82,21 +80,23 @@ for col in interval_cols:
 
     interval_dicts.update(intervals)
 
-with open('intervals.json', 'w') as file:
-    json.dump(interval_dicts, 
-              file, 
-              indent=4, 
-              sort_keys=True)
-
 print(interval_dicts)
 
 # If the Phi K Correlation report or the Phi K Correlation Matrix doesn't exist, generate the PDF
-if not exists(Path(data_path) / 'phi_k_report.pdf') or not exists(Path(data_path) / 'phi_k_matrix.csv'):
+if not exists(Path(data_path) / 'phi_k_report.pdf') or not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path) / 'significance_matrix.csv'):
 
-    phik.phik_matrix(df, 
-                     bins=interval_dicts, 
-                     interval_cols=interval_cols).to_csv(Path(data_path) / 'phi_k_matrix.csv')
+    phik_matrix(df, 
+                bins=interval_dicts, 
+                interval_cols=interval_cols,
+                noise_correction=True).to_csv(Path(data_path) / 'phi_k_matrix.csv')
     
-    report.correlation_report(df, 
+    significance_matrix(df,
+                        bins=interval_dicts,
+                        interval_cols=interval_cols,
+                        significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
+                        ).to_csv(Path(data_path) / 'significance_matrix.csv')
+    
+    report.correlation_report(df,
+                              interval_cols=interval_cols,
                               correlation_threshold=0.5, # In Phi K, correlations >=0.5 carry high risk for modelling
                               pdf_file_name=Path(data_path) / 'phi_k_report.pdf')
