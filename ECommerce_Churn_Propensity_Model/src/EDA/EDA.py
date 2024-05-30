@@ -26,21 +26,30 @@ float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'Co
 interval_cols = ['WarehouseToHome', 'Tenure']
 interval_dicts = {}
 
+# Perform count of NaNs in the defined interval columns for downstream bin length calculation using Doane's Formula
+for cols in interval_cols:
+    nan_count = df[cols].isna().sum()
+    print(f'\'{cols}\' has {nan_count} NaN values')
+
 # Cast float_columns as integers and impute NaN values with 0s
 df[float_columns] = df[float_columns].fillna(0).astype(int)
-print(df)
+print('RECASTED DATA FRAME WITHOUT NaN VALUES:\n',df)
 
-def doanes_formula(data) -> int:
+def doanes_formula(data, nan_count=nan_count) -> int:
     """
     To aid in the preparation for the correct binning of Intervals prior to the calculation of Phi K Correlation,
     I've opted to use Doane's Formula to determine the Bin sizes of the intervals. Since I couldn't find a 
     Python library for the formula, I've come up with this implementation of Doane's Formula.
       Please refer to the 'README.md' file (in the EDA folder) for a mathematical explanation of the formula 
     and the data justifications behind selecting Doane's Formula for calculating bin sizes.
-      This function will return the bin length as a truncated integer.
+      This function will return the bin length as a truncated integer (not rounded!). I elected for numeric truncation
+    over rounding, since I saw that numpy's rounding with np.ceil() led to substantial rounding errors (for instance,
+    18.1 would be rounded to 19). So, I've opted to truncated and cast as integer rather than have these rounding 
+    errors in the calculation of the interval's bin length.
     """
-    n = len(data)
-    g1 = skew(data)
+
+    n = len(data) - nan_count
+    g1 = skew(data) - nan_count
     sigma_g1 = np.sqrt((6*(n - 2)) / ((n + 1)*(n + 3)))
     k = 1 + np.log2(n) + np.log2(1 + abs(g1) / sigma_g1)
 
@@ -64,7 +73,7 @@ if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
                                     type_schema=df_schema,
                                     correlations={'phi_k': {'calculate': True,
                                                             'threshold': 0.5,
-                                                            'warn_high_correlations': True}}, # Since there are 10 categorical variables, use Phi K to calculate correlations between them
+                                                            'warn_high_correlations': True}},
                                     tsmode=False, 
                                     explorative=True)
 
@@ -82,8 +91,8 @@ for col in interval_cols:
 
 print(interval_dicts)
 
-# If the Phi K Correlation report or the Phi K Correlation Matrix doesn't exist, generate the PDF
-if not exists(Path(data_path) / 'phi_k_report.pdf') or not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path) / 'significance_matrix.csv'):
+# If the following Matrices don't exist, generate and store them as CSVs
+if not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path) / 'significance_matrix.csv'):
 
     phik_matrix(df, 
                 bins=interval_dicts, 
@@ -95,8 +104,3 @@ if not exists(Path(data_path) / 'phi_k_report.pdf') or not exists(Path(data_path
                         interval_cols=interval_cols,
                         significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
                         ).to_csv(Path(data_path) / 'significance_matrix.csv')
-    
-    report.correlation_report(df,
-                              interval_cols=interval_cols,
-                              correlation_threshold=0.5, # In Phi K, correlations >=0.5 carry high risk for modelling
-                              pdf_file_name=Path(data_path) / 'phi_k_report.pdf')
