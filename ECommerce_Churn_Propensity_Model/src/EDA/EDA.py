@@ -27,15 +27,14 @@ interval_cols = ['WarehouseToHome', 'Tenure']
 interval_dicts = {}
 
 # Perform count of NaNs in the defined interval columns for downstream bin length calculation using Doane's Formula
-for cols in interval_cols:
-    nan_count = df[cols].isna().sum()
-    print(f'\'{cols}\' has {nan_count} NaN values')
+nan_dict = {col: df[col].isna().sum() for col in interval_cols}
+print('NaN COUNT DICTIONARY:\n', nan_dict)
 
 # Cast float_columns as integers and impute NaN values with 0s
 df[float_columns] = df[float_columns].fillna(0).astype(int)
-print('RECASTED DATA FRAME WITHOUT NaN VALUES:\n',df)
+print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n',df)
 
-def doanes_formula(data, nan_count=nan_count) -> int:
+def doanes_formula(data, nan_count) -> int:
     """
     To aid in the preparation for the correct binning of Intervals prior to the calculation of Phi K Correlation,
     I've opted to use Doane's Formula to determine the Bin sizes of the intervals. Since I couldn't find a 
@@ -46,6 +45,9 @@ def doanes_formula(data, nan_count=nan_count) -> int:
     over rounding, since I saw that numpy's rounding with np.ceil() led to substantial rounding errors (for instance,
     18.1 would be rounded to 19). So, I've opted to truncated and cast as integer rather than have these rounding 
     errors in the calculation of the interval's bin length.
+      N.B.: Since Doane's Formula relies on the number of observations in the DF, if there are NaNs in the input DF, 
+    please calculate the number of NaNs and deduct that value from 'n' (i.e. use the 'nan_count' arg in the function).
+    If there are no NaNs, please set nan_count = 0.
     """
 
     n = len(data) - nan_count
@@ -82,14 +84,14 @@ if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
 ########## Phi K Correlation calculation and report generation ##########
 # Apply Doane's Formula to calculate and store bin sizes in a List structure as prepartion for Phi K Correlation
 for col in interval_cols:
-    bin_len = doanes_formula(df[col])
+    bin_len = doanes_formula(df[col], nan_count=nan_dict[col])
     intervals = {
     col: bin_len
     }
 
     interval_dicts.update(intervals)
 
-print(interval_dicts)
+print('RESULTS OF DOANE\'S CALCULATION OF BIN LENGTHS FOR PROVIDED INTERVAL VARIABLES:\n', interval_dicts)
 
 # If the following Matrices don't exist, generate and store them as CSVs
 if not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path) / 'significance_matrix.csv'):
