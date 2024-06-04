@@ -23,17 +23,18 @@ df = pd.read_excel(Path(content_file), sheet_name=1)
 
 # Define columns for casting and interval definitions
 float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder']
-interval_cols = ['WarehouseToHome', 'Tenure']
-interval_dicts = {}
+skewed_interval_cols = ['WarehouseToHome', 'Tenure', 'CashbackAmount', 'DaySinceLastOrder', 'OrderCount']
+interval_bins = {}
 
-# Perform count of NaNs in the defined interval columns for downstream bin length calculation using Doane's Formula
-nan_dict = {col: df[col].isna().sum() for col in interval_cols}
-print('NaN COUNT DICTIONARY:\n', nan_dict)
+# Perform count of NaNs in the defined interval columns for downstream bin length calculation using either Sturges's Rule & Doane's Formula (depending on the existence of Skewness from the y-data profiling report)
+skewed_nan_dict = {col: df[col].isna().sum() for col in skewed_interval_cols}
+print('SKEWED NaN COUNT DICTIONARY:\n', skewed_nan_dict)
 
 # Cast float_columns as integers and impute NaN values with 0s
 df[float_columns] = df[float_columns].fillna(0).astype(int)
-print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n',df)
+print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
 
+########## Define the Mathematical equations to be used for Skewed and non-Skewed bin length calculations ##########
 def doanes_formula(data, nan_count) -> int:
     """
     To aid in the preparation for the correct binning of Intervals prior to the calculation of Phi K Correlation,
@@ -43,13 +44,12 @@ def doanes_formula(data, nan_count) -> int:
     and the data justifications behind selecting Doane's Formula for calculating bin sizes.
       This function will return the bin length as a truncated integer (not rounded!). I elected for numeric truncation
     over rounding, since I saw that numpy's rounding with np.ceil() led to substantial rounding errors (for instance,
-    18.1 would be rounded to 19). So, I've opted to truncated and cast as integer rather than have these rounding 
+    18.1 would be rounded to 19). So, I've opted to truncate and cast as integer rather than have these rounding 
     errors in the calculation of the interval's bin length.
       N.B.: Since Doane's Formula relies on the number of observations in the DF, if there are NaNs in the input DF, 
     please calculate the number of NaNs and deduct that value from 'n' (i.e. use the 'nan_count' arg in the function).
-    If there are no NaNs, please set nan_count = 0.
+    If there are no NaNs, please set 'nan_count = 0'.
     """
-
     n = len(data) - nan_count
     g1 = skew(data) - nan_count
     sigma_g1 = np.sqrt((6*(n - 2)) / ((n + 1)*(n + 3)))
@@ -57,6 +57,32 @@ def doanes_formula(data, nan_count) -> int:
 
     return int(np.trunc(k))
 
+########## Phi K Correlation calculation and report generation ##########
+# Apply Doane's Formula to calculate and store bin sizes for the skewed data in a Dictionary structure as prepartion for Phi K Correlation
+for col in skewed_interval_cols:
+    skewed_bin_len = doanes_formula(df[col], nan_count=skewed_nan_dict[col])
+    intervals = {
+    col: skewed_bin_len
+    }
+    interval_bins.update(intervals)
+
+print('RESULTS OF DOANE\'S CALCULATION OF BIN LENGTHS FOR DECLARED INTERVAL VARIABLES:\n', interval_bins)
+
+# If the following Matrices don't exist, generate and store them as CSVs
+if not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path) / 'significance_matrix.csv'):
+
+    phik_matrix(df, 
+                bins=interval_bins, 
+                interval_cols=interval_bins,
+                noise_correction=True).to_csv(Path(data_path) / 'phi_k_matrix.csv')
+    
+    # Please note that calculating a Significance Matrix can be a little slow!
+    significance_matrix(df,
+                        bins=interval_bins,
+                        interval_cols=interval_bins,
+                        significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
+                        ).to_csv(Path(data_path) / 'significance_matrix.csv')
+    
 ########## Y-Data Profiling ##########
 # If the EDA profiling report doesn't exist, generate report as an HTML document
 if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
@@ -80,29 +106,3 @@ if not exists(Path(data_path) / 'EDA_Profiling_Report.html'):
                                     explorative=True)
 
     profile_report.to_file(Path(data_path) / 'EDA_Profiling_Report.html')
-
-########## Phi K Correlation calculation and report generation ##########
-# Apply Doane's Formula to calculate and store bin sizes in a List structure as prepartion for Phi K Correlation
-for col in interval_cols:
-    bin_len = doanes_formula(df[col], nan_count=nan_dict[col])
-    intervals = {
-    col: bin_len
-    }
-
-    interval_dicts.update(intervals)
-
-print('RESULTS OF DOANE\'S CALCULATION OF BIN LENGTHS FOR PROVIDED INTERVAL VARIABLES:\n', interval_dicts)
-
-# If the following Matrices don't exist, generate and store them as CSVs
-if not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path) / 'significance_matrix.csv'):
-
-    phik_matrix(df, 
-                bins=interval_dicts, 
-                interval_cols=interval_cols,
-                noise_correction=True).to_csv(Path(data_path) / 'phi_k_matrix.csv')
-    
-    significance_matrix(df,
-                        bins=interval_dicts,
-                        interval_cols=interval_cols,
-                        significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
-                        ).to_csv(Path(data_path) / 'significance_matrix.csv')
