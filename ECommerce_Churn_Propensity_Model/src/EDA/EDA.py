@@ -4,7 +4,7 @@ from scipy.stats import skew
 import numpy as np
 from pathlib import Path
 from ydata_profiling import ProfileReport
-from phik import report, phik_matrix, significance_matrix
+from phik import phik_matrix, significance_matrix
 import yaml
 
 # Load the file paths and global variables from YAML config file
@@ -26,7 +26,7 @@ float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'Co
 skewed_interval_cols = ['WarehouseToHome', 'Tenure', 'CashbackAmount', 'DaySinceLastOrder', 'OrderCount']
 interval_bins = {}
 
-# Perform count of NaNs in the defined interval columns for downstream bin length calculation using either Sturges's Rule & Doane's Formula (depending on the existence of Skewness from the y-data profiling report)
+# Perform count of NaNs in the defined interval columns for downstream bin length calculation using Doane's Formula
 skewed_nan_dict = {col: df[col].isna().sum() for col in skewed_interval_cols}
 print('SKEWED NaN COUNT DICTIONARY:\n', skewed_nan_dict)
 
@@ -34,7 +34,7 @@ print('SKEWED NaN COUNT DICTIONARY:\n', skewed_nan_dict)
 df[float_columns] = df[float_columns].fillna(0).astype(int)
 print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
 
-########## Define the Mathematical equations to be used for Skewed and non-Skewed bin length calculations ##########
+########## Define the Mathematical equations to be used for Skewed bin length calculations ##########
 def doanes_formula(data, nan_count) -> int:
     """
     To aid in the preparation for the correct binning of Intervals prior to the calculation of Phi K Correlation,
