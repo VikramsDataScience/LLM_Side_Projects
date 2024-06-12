@@ -1,3 +1,5 @@
+import os
+import sys
 from os.path import exists
 import pandas as pd
 from scipy.stats import skew
@@ -6,6 +8,7 @@ from pathlib import Path
 from ydata_profiling import ProfileReport
 from phik import phik_matrix, significance_matrix
 from missforest.missforest import MissForest
+import contextlib
 import yaml
 
 # Load the file paths and global variables from YAML config file
@@ -29,15 +32,30 @@ skewed_interval_cols = ['WarehouseToHome', 'Tenure', 'CashbackAmount', 'DaySince
 interval_bins = {}
 missforest_imputer = MissForest()
 
+@contextlib.contextmanager
+def suppress_stdout():
+    """
+    The MissForest library contains quite verbose output. Use this boilerplate function to suppress.
+    """
+    with open(os.devnull, 'w') as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
 # Perform count of NaNs in the defined interval columns for downstream bin length calculation using Doane's Formula
 # N.B.: NOT NECESSARY IF USING IMPUTATION STRATEGY
 skewed_nan_dict = {col: df[col].isna().sum() for col in skewed_interval_cols}
 print('SKEWED NaN COUNT DICTIONARY:\n', skewed_nan_dict)
 
 # Cast float_columns as integers and dynamically impute NaN values using MissForest
-imputed_df = missforest_imputer.fit_transform(x=df, 
-                                   categorical=categorical_columns)
-df = pd.DataFrame(imputed_df)
+with suppress_stdout():
+  imputed_df = missforest_imputer.fit_transform(x=df, 
+                                    categorical=categorical_columns)
+  df = pd.DataFrame(imputed_df)
+
 df[float_columns] = df[float_columns].astype(int)
 print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
 
@@ -84,11 +102,11 @@ if not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path
                 noise_correction=True).to_csv(Path(data_path) / 'phi_k_matrix.csv')
     
     # Please note that calculating a Significance Matrix can be a little slow!
-    significance_matrix(df,
-                        bins=interval_bins,
-                        interval_cols=interval_bins,
-                        significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
-                        ).to_csv(Path(data_path) / 'significance_matrix.csv')
+    # significance_matrix(df,
+    #                     bins=interval_bins,
+    #                     interval_cols=interval_bins,
+    #                     significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
+    #                     ).to_csv(Path(data_path) / 'significance_matrix.csv')
     
 ########## Y-Data Profiling ##########
 # If the EDA profiling report doesn't exist, generate report as an HTML document
