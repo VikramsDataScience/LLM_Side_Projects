@@ -1,3 +1,6 @@
+import os
+import sys
+import contextlib
 from os.path import exists
 import pandas as pd
 from scipy.stats import skew
@@ -5,6 +8,7 @@ import numpy as np
 from pathlib import Path
 from ydata_profiling import ProfileReport
 from phik import phik_matrix, significance_matrix
+from missforest.missforest import MissForest
 import yaml
 
 # Load the file paths and global variables from YAML config file
@@ -22,16 +26,36 @@ data_path = global_vars['data_path']
 df = pd.read_excel(Path(content_file), sheet_name=1)
 
 # Define columns for casting and interval definitions
+categorical_columns = ['PreferredLoginDevice', 'CityTier', 'PreferredPaymentMode', 'Gender', 'PreferedOrderCat', 'SatisfactionScore', 'MaritalStatus', 'Complain', 'Churn', 'CouponUsed']
 float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder']
 skewed_interval_cols = ['WarehouseToHome', 'Tenure', 'CashbackAmount', 'DaySinceLastOrder', 'OrderCount']
 interval_bins = {}
+missforest_imputer = MissForest()
+
+@contextlib.contextmanager
+def suppress_stdout():
+    """
+    For any library that contains (undesirably) verbose output. Use this boilerplate function to suppress.
+    """
+    with open(os.devnull, 'w') as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
 
 # Perform count of NaNs in the defined interval columns for downstream bin length calculation using Doane's Formula
+# N.B.: NOT NECESSARY IF USING IMPUTATION STRATEGY
 skewed_nan_dict = {col: df[col].isna().sum() for col in skewed_interval_cols}
 print('SKEWED NaN COUNT DICTIONARY:\n', skewed_nan_dict)
 
-# Cast float_columns as integers and impute NaN values with 0s
-df[float_columns] = df[float_columns].fillna(0).astype(int)
+# Cast float_columns as integers and dynamically impute NaN values using MissForest
+with suppress_stdout():
+  df = missforest_imputer.fit_transform(x=df, 
+                                    categorical=categorical_columns)
+
+df[float_columns] = df[float_columns].astype(int)
 print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
 
 ########## Define the Mathematical equations to be used for Skewed bin length calculations ##########
@@ -60,7 +84,7 @@ def doanes_formula(data, nan_count) -> int:
 ########## Phi K Correlation calculation and report generation ##########
 # Apply Doane's Formula to calculate and store bin sizes for the skewed data in a Dictionary structure as prepartion for Phi K Correlation
 for col in skewed_interval_cols:
-    skewed_bin_len = doanes_formula(df[col], nan_count=skewed_nan_dict[col])
+    skewed_bin_len = doanes_formula(df[col], nan_count=0) # skewed_nan_dict[col]
     intervals = {
     col: skewed_bin_len
     }
