@@ -1,4 +1,8 @@
+import os
+import sys
+import contextlib
 import pandas as pd
+from missforest.missforest import MissForest
 import numpy as np
 from pathlib import Path
 import yaml
@@ -15,13 +19,36 @@ except:
 content_file = global_vars['content_path']
 data_path = global_vars['data_path']
 
+@contextlib.contextmanager
+def suppress_stdout():
+    """
+    For any library that contains (undesirably) verbose output. Use this boilerplate function to suppress.
+    """
+    with open(os.devnull, 'w') as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
 # Define columns for casting and interval definitions
 df = pd.read_excel(Path(content_file), sheet_name=1)
 float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder']
+categorical_columns = ['PreferredLoginDevice', 'CityTier', 'PreferredPaymentMode', 'Gender', 'PreferedOrderCat', 'SatisfactionScore', 'MaritalStatus', 'Complain', 'Churn', 'CouponUsed']
+missforest_imputer = MissForest()
 
-# Cast float_columns as integers, impute NaN values with 0s, and create bins for 'Tenure': '0–12 Month', '12–24 Month', '24–48 Months', '48–60 Month', '> 60 Month'
-df[float_columns] = df[float_columns].fillna(0).astype(int)
-print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
-df['Tenure'] = pd.cut(df['Tenure'], [0, 12, 24, 48, 60, 72])
+# Cast float_columns as integers, impute NaN values using MissForest
+with suppress_stdout():
+    df = missforest_imputer.fit_transform(x=df,
+                                    categorical=categorical_columns)
+    df[float_columns] = df[float_columns].astype(int)
+
+# Create bins for 'Tenure': '0–12 Month', '12–24 Month', '24–48 Months', '48–60 Month', '> 60 Month'
+df['Tenure'] = pd.cut(df['Tenure'], [0, 12, 24, 48, 60, 72], right=False) # Set arg 'right=False' to close the left interval (i.e. 0 <= x < 12 in the 'Tenure' column). Otherwise, NaNs will occur!
 print(df.value_counts('Tenure'))
 
+df.set_index('CustomerID', inplace=True)
+
+
+print(df)
