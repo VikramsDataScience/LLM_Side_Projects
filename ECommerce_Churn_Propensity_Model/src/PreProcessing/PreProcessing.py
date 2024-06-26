@@ -49,6 +49,8 @@ print(df.value_counts('Tenure'))
 
 df.set_index('CustomerID', inplace=True)
 df = pd.get_dummies(df, columns=onehot_categoricals, dtype=int)
+# Rename the closed interval '[' columns to suit XGBClassifier() class. Otherwise XGBClassifier() will raise column name errors
+df.columns = [col.replace('[', '(') for col in df.columns]
 print(df.info())
 print(df)
 
