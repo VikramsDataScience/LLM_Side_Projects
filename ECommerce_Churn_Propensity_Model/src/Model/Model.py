@@ -19,13 +19,24 @@ except:
 
 data_path = Path(global_vars['data_path'])
 seed = global_vars['seed']
-models_list = ['logistic_regression', 'RFClassifier', 'XGBoost']
 
 df = pd.read_csv(data_path / 'PreProcessed_ECommerce_Dataset.csv')
 
 # Define target variable (y) and features (X)
-X = df.drop(['Churn', 'CashbackAmount'], axis=1)
+# The EDA exposed high correlation with the 'CashbackAmount' feature. So remove from X
+X = df.drop(['CustomerID', 'Churn', 'CashbackAmount'], axis=1)
 y = df['Churn']
+
+# Define DMatrix and Hyper Parameters for XGBoost
+d_matrix = xgb.DMatrix(data=X, label=y)
+params = {
+            'objective':'binary:logistic',
+            'max_depth': 9,
+            # 'alpha': 10, # L1 Regularization on the leaf nodes (larger value means greater regularization) 
+            'lambda': 10, # L2 Regularization on the leaf nodes (larger value means greater regularization). L2 is smoother than L1 and tends to better prevent overfitting
+            'learning_rate': 0.4,
+            'n_estimators':100
+        }
 
 # Perform Train/Test split with Stratification since the class labels, y, is an imbalanced dataset that favours those who didn't churn (i.e. ~83% didn't churn)
 X_train, X_test, y_train, y_test = train_test_split(X, 
@@ -35,19 +46,19 @@ X_train, X_test, y_train, y_test = train_test_split(X,
                                                     shuffle=True,
                                                     random_state=seed)
 
-# Define Hyper Parameters
+# Define/load Hyper Parameters
 models_config = {
     'logistic_regression': LogisticRegression(class_weight='balanced', # In addition to Stratification, this perform's class balancing on model at fit() stage
                                               solver='liblinear', # The Solver refers to the available Gradient Descent Optimization options (i.e. selection of Loss functions)
                                               random_state=seed),
-    'RFClassifier': RandomForestClassifier(class_weight='balanced',
+    'RFClassifier': RandomForestClassifier(class_weight=None, # For RFClassifier, setting class_weights='balanced' harms the F1-Score. Leave class_weight=None (default)
+                                           n_estimators=200, # ~200 trees improves F1-Score. 200+ is past the point of optimality, and will reduce accuracy
+                                           max_depth=None, # Leave max_depth=None so the classifier can grow the trees until all leaves are pure (lowest Gini Impurity) without stopping criterion causing premature terminations
                                            random_state=seed),
-    'XGBoost': xgb.XGBClassifier(device='cuda',
-                                 
-                                random_state=seed)
+    'XGBoost': xgb.XGBClassifier(**params)
 }
 
-for model in ['logistic_regression']: # models_config
+for model in models_config:
     print(f'COMMENCING TRAINING FOR \'{model}\':')
 
     # Train set predictions (In sample)
