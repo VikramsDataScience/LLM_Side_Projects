@@ -31,9 +31,10 @@ y = df['Churn']
 d_matrix = xgb.DMatrix(data=X, label=y)
 params = {
             'objective':'binary:logistic',
-            'max_depth': 4,
-            'alpha': 10,
-            'learning_rate': 1.0,
+            'max_depth': 9,
+            # 'alpha': 10, # L1 Regularization on the leaf nodes (larger value means greater regularization) 
+            'lambda': 10, # L2 Regularization on the leaf nodes (larger value means greater regularization). L2 is smoother than L1 and tends to better prevent overfitting
+            'learning_rate': 0.4,
             'n_estimators':100
         }
 
