@@ -20,6 +20,8 @@ except:
 data_path = Path(global_vars['data_path'])
 seed = global_vars['seed']
 
+insample_scores = pd.DataFrame(columns=['Model', 'Precision', 'Recall', 'F1-Score'])
+outofsample_scores = pd.DataFrame(columns=['Model', 'Precision', 'Recall', 'F1-Score'])
 df = pd.read_csv(data_path / 'PreProcessed_ECommerce_Dataset.csv')
 
 # Define target variable (y) and features (X)
@@ -65,12 +67,16 @@ for model in models_config:
     models_config[model].fit(X_train, y_train)
     y_pred = models_config[model].predict(X_train)
     train_classification_scores = precision_recall_fscore_support(y_train, y_pred, average='weighted')
-    print(f'In sample prediction scores for {model}:')
-    print('Precision: ', train_classification_scores[0],
-          '\nRecall: ', train_classification_scores[1],
-          '\nF1-Score: ', train_classification_scores[2])
+    # Save in-sample Prediction scores
+    new_row = pd.DataFrame({
+    'Model': [model],
+    'Precision': [train_classification_scores[0]],
+    'Recall': [train_classification_scores[1]],
+    'F1-Score': [train_classification_scores[2]]
+    })
+    insample_scores = pd.concat([insample_scores, new_row], ignore_index=True)
+
     train_conf_matrix = confusion_matrix(y_train, y_pred)
-    print(train_conf_matrix)
     cm_display = ConfusionMatrixDisplay(confusion_matrix=train_conf_matrix, display_labels=[False, True])
     cm_display.plot()
     plt.savefig(Path(data_path / 'train_conf_matrix.png'))
@@ -78,12 +84,30 @@ for model in models_config:
     # Test set predictions (Out of Sample)
     y_test_pred = models_config[model].predict(X_test)
     test_classification_scores = precision_recall_fscore_support(y_test, y_test_pred, average='weighted')
-    print(f'\nOut of sample prediction scores for {model}:')
-    print('Precision: ', test_classification_scores[0],
-          '\nRecall: ', test_classification_scores[1],
-          '\nF1-Score: ', test_classification_scores[2])
+    # Save out-of-sample Prediction scores
+    new_row = pd.DataFrame({
+    'Model': [model],
+    'Precision': [test_classification_scores[0]],
+    'Recall': [test_classification_scores[1]],
+    'F1-Score': [test_classification_scores[2]]
+    })
+    outofsample_scores = pd.concat([outofsample_scores, new_row], ignore_index=True)
+
     test_conf_matrix = confusion_matrix(y_test, y_test_pred)
-    print(test_conf_matrix)
     cm_display = ConfusionMatrixDisplay(confusion_matrix=test_conf_matrix, display_labels=[False, True])
     cm_display.plot()
     plt.savefig(Path(data_path / 'OOS_conf_matrix.png'))
+
+    if model == 'logistic_regression':
+        print(f'{model} Feature Importances:\n', models_config[model].coef_)
+    if model == 'RFClassifier':
+        rf_feat_importance = models_config[model].feature_importances_
+        feat_importance = pd.Series(rf_feat_importance, index=X.columns)
+        print(f'{model} Feature Importances:\n', feat_importance)
+    if model == 'XGBoost':
+        xg_feat_importance = models_config[model].get_booster().get_score(importance_type="gain")
+        print(f'{model} Feature Importances:\n', xg_feat_importance)
+
+# Save predictions scores to storage
+insample_scores.to_csv(Path(data_path) / 'insample_scores.csv')
+outofsample_scores.to_csv(Path(data_path) / 'outofsample_scores.csv')
