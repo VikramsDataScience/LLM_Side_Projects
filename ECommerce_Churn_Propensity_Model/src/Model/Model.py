@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 from pathlib import Path
 import yaml
+import pickle
 
 # Load the file paths and global variables from YAML config file
 try:
@@ -18,6 +19,7 @@ except:
     print(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 data_path = Path(global_vars['data_path'])
+churn_app_path = Path(global_vars['churn_app_models'])
 seed = global_vars['seed']
 
 insample_scores = pd.DataFrame(columns=['Model', 'Precision', 'Recall', 'F1-Score'])
@@ -107,7 +109,11 @@ for model in models_config:
     if model == 'XGBoost':
         xg_feat_importance = models_config[model].get_booster().get_score(importance_type="gain")
         print(f'{model} Feature Importances:\n', xg_feat_importance)
+    
+    # Save models for downstream consumption
+    with open(churn_app_path / f'churn_{model}_model.pkl', 'wb') as file:
+        pickle.dump(models_config[model], file)
 
-# Save predictions scores to storage
+# Save prediction scores to storage
 insample_scores.to_csv(Path(data_path) / 'insample_scores.csv')
 outofsample_scores.to_csv(Path(data_path) / 'outofsample_scores.csv')
