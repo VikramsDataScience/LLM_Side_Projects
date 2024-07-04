@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 from pathlib import Path
 import yaml
 import pickle
+from statistics import median
 
 # Load the file paths and global variables from YAML config file
 try:
@@ -30,3 +31,55 @@ for model in models_list:
 def home():
     return render_template('index.html')
 
+@app.route('/predict')
+def predict():
+    data = request.json
+
+    features = [
+        data['CityTier'],
+        data['WarehouseToHome'],
+        data['HourSpendOnApp'],
+        data['NumberOfDeviceRegistered'],
+        data['SatisfactionScore'],
+        data['NumberOfAddress'],
+        data['Complain'],
+        data['OrderAmountHikeFromlastYear'],
+        data['CouponUsed'],
+        data['OrderCount'],
+        data['DaySinceLastOrder'],
+        data['Tenure_(0, 12)'],
+        data['Tenure_(12, 24)'],
+        data['Tenure_(24, 48)'],
+        data['PreferredLoginDevice_Computer'],
+        data['PreferredLoginDevice_Mobile Phone'],
+        data['PreferredLoginDevice_Phone'],
+        data['PreferredPaymentMode_CC'],
+        data['PreferredPaymentMode_COD'],
+        data['PreferredPaymentMode_Cash on Delivery'],
+        data['PreferredPaymentMode_Credit Card'],
+        data['PreferredPaymentMode_Debit Card'],
+        data['PreferredPaymentMode_E wallet'],
+        data['PreferredPaymentMode_UPI'],
+        data['Gender_Female'],
+        data['Gender_Male'],
+        data['PreferedOrderCat_Fashion'],
+        data['PreferedOrderCat_Grocery'],
+        data['PreferedOrderCat_Laptop & Accessory'],
+        data['PreferedOrderCat_Mobile Phone'],
+        data['PreferedOrderCat_Others'],
+        data['MaritalStatus_Divorced'],
+        data['MaritalStatus_Married'],
+        data['MaritalStatus_Single']
+    ]
+
+    log_reg_model.predict([features])[0]
+    RF_model.predict([features])[0]
+    XGBoost_model.predict([features])[0]
+
+    combined_predictions = [log_reg_model, RF_model, XGBoost_model]
+
+    # Since Logistic Regression has significanly lower accuracy than RF and XGBoost, calculate and return the median F1-Score across all three models
+    return jsonify({'prediction': median(combined_predictions)})
+
+if __name__ == '__main__':
+    app.run(debug=True)
