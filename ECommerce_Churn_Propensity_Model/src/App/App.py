@@ -31,12 +31,12 @@ for model in models_list:
 def home():
     return render_template('index.html')
 
-@app.route('/predict')
+@app.route('/predict', methods=['POST'])
 def predict():
     data = request.json
 
     features = [
-        data['CityTier'],
+	    data['CityTier'],
         data['WarehouseToHome'],
         data['HourSpendOnApp'],
         data['NumberOfDeviceRegistered'],
@@ -72,11 +72,12 @@ def predict():
         data['MaritalStatus_Single']
     ]
 
-    log_reg_model.predict([features])[0]
-    RF_model.predict([features])[0]
-    XGBoost_model.predict([features])[0]
+    # Select positive class (i.e. probability of churn). Shape of predict_proba() should be [negative class, positive class]
+    log_reg_pred = log_reg_model.predict_proba([features])[0][1]
+    RF_pred = RF_model.predict_proba([features])[0][1]
+    XG_pred = XGBoost_model.predict_proba([features])[0][1]
 
-    combined_predictions = [log_reg_model, RF_model, XGBoost_model]
+    combined_predictions = [log_reg_pred, RF_pred, XG_pred]
 
     # Since Logistic Regression has significanly lower accuracy than RF and XGBoost, calculate and return the median F1-Score across all three models
     return jsonify({'prediction': median(combined_predictions)})
