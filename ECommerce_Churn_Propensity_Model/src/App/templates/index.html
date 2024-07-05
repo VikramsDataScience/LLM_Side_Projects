@@ -11,31 +11,34 @@
     </div>
     <form action="/predict" method="post" id="predictionForm">
         <label for="CityTier">City Tier (required):</label><br>
-        <input type="radio" id="CityTier" name="CityTier" value="2" required> 2
-        <input type="radio" id="CityTier" name="CityTier" value="3" required> 3<br>
+        <input type="radio" id="CityTier" name="CityTier" value="2" required> 2<br>
+        <input type="radio" id="CityTier" name="CityTier" value="3" required> 3<br><br>
 
         <label for="WarehouseToHome">Warehouse to Home:</label><br>
-        <input type="number" id="WarehouseToHome" name="WarehouseToHome">
+        <input type="number" id="WarehouseToHome" name="WarehouseToHome"><br>
 
         <label for="SatisfactionScore">Satisfaction Score (required):</label><br>
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="1" required> 1
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="2" required> 2
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="3" required> 3
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="4" required> 4
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="5" required> 5
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="1" required> 1<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="2" required> 2<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="3" required> 3<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="4" required> 4<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="5" required> 5<br>
+        <br><br>
 
-    </form>
-    <div id="result"></div>
+    <div id="result">
+        <input type="submit" value="Run Churn Prediction">
+    </div>
+</form>
 
     <script>
         document.getElementById('predictionForm').onsubmit = async function(event) {
             event.preventDefault();
-            // Check for grab mandatory values from the submitted form
+            // Grab mandatory values from the submitted form
             const CityTier = document.querySelector('input[name=CityTier]:checked').value;
             const SatisfactionScore = document.querySelector('input[name=SatisfactionScore]:checked').value;
             
             // Grab the optional values from the submitted form
-            const WarehouseToHome = document.getElementById('WarehouseToHome').value;
+            const WarehouseToHome = document.getElementById('WarehouseToHome').value || null;
             
             // Send POST request to /predict
             const response = await fetch('/predict', {
@@ -43,12 +46,14 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({CityTier, 
+                body: JSON.stringify({
+                    CityTier, 
                     SatisfactionScore, 
-                    WarehouseToHome})
+                    WarehouseToHome
+                })
         });
         const result = await response.json();
-        document.getElementById('result').innerText = 'Prediction: ' + result.prediction;
+        document.getElementById('result').textContent = 'Churn Propensity: ' + result.prediction;
         };
     </script>
 </body>
