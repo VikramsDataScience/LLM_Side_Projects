@@ -1,4 +1,4 @@
-# Job Ad Q&A Model (POC Complete)
+# Job Ad Vectorised Database (POC Complete)
 The intention of the project is to develop a proof of concept Q&A AI model using PYTorch and a little bit of the Hugging Face🤗 Transformers API. This model isn't generative in nature, but rather uses Linear Matrix Factorisation to embed user queries into a semantic search that will return the top 5 most relevant job ads (model is trained on 50,000 job ads from SEEK) to the user query.
 
 ## Table of Contents
