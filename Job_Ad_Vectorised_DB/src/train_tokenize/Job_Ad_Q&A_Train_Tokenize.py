@@ -24,7 +24,7 @@ except:
     logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 # Declare paths for the raw and cleaned JSON files
-content_path = global_vars['content_path']
+content_file = global_vars['content_file']
 saved_models_path = global_vars['saved_models_path']
 # IMPORTANT: Before selecting a sentence embedding pretrained_model, please review the updated performance metrics for other commonly used models here (https://www.sbert.net/docs/pretrained_models.html#model-overview)
 pretrained_model = global_vars['pretrained_model']
@@ -35,8 +35,8 @@ tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
 model = AutoModel.from_pretrained(pretrained_model)
 
 # Load the dataset
-train_test_dict = {'train': content_path, 
-                   'test': content_path}
+train_test_dict = {'train': content_file, 
+                   'test': content_file}
 
 clean_content = load_dataset('json', 
                              data_files=train_test_dict, 
@@ -70,4 +70,4 @@ def encode_batch(batch):
 
 # Use map function to process the documents in batches and save the model for further downstream
 docs = clean_content_dataset.map(encode_batch, batched=True, batch_size=batch_size)
-docs.save_to_disk(Path(saved_models_path))
+docs.save_to_disk(Path(saved_models_path) / 'encoded_batch')
