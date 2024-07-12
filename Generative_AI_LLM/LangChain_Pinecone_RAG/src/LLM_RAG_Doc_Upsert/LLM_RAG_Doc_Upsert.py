@@ -88,7 +88,7 @@ def create_vectors(index_name):
     For a given 'index_name', create vectorised embeddings.
     """
     embeddings = SentenceTransformer('all-MiniLM-L6-v2')
-    vectors = pinecone.Pinecone.from_existing_index(index_name=index_name, embedding=embeddings)
+    vectors = pinecone.from_existing_index(index_name=index_name, embedding=embeddings) 
     print(f'Embeddings for Index: \'{index_name}\' successfully upserted!')
 
     return vectors

@@ -2,17 +2,7 @@ from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
 from transformers import AutoTokenizer
 from pathlib import Path
-import logging
 import yaml
-
-logger = logging.getLogger('LLM_Finetune')
-logger.setLevel(logging.ERROR)
-error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Error_Logs/LLM_Finetune_log.log'))
-error_handler.setLevel(logging.ERROR)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-error_handler.setFormatter(formatter)
-logger.addHandler(error_handler)
 
 # Load the file paths and global variables from YAML config file
 try:
@@ -21,7 +11,7 @@ try:
     with open(config_path / 'config.yml', 'r') as file:
         global_vars = yaml.safe_load(file)
 except:
-    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
+    print(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 model_ver = global_vars['model_ver']
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
