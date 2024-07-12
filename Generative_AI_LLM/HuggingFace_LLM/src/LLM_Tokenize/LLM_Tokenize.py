@@ -4,17 +4,7 @@ from os import remove
 from datasets import load_dataset
 import torch
 from pathlib import Path
-import logging
 import yaml
-
-logger = logging.getLogger('LLM_Tokenize')
-logger.setLevel(logging.ERROR)
-error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Error_Logs/LLM_Tokenize_log.log'))
-error_handler.setLevel(logging.ERROR)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-error_handler.setFormatter(formatter)
-logger.addHandler(error_handler)
 
 # Load the file paths and global variables from YAML config file
 try:
@@ -23,7 +13,7 @@ try:
     with open(config_path / 'config.yml', 'r') as file:
         global_vars = yaml.safe_load(file)
 except:
-    logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
+    print(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 LLM_pretrained_path = global_vars['LLM_pretrained_path']
 batch_size = global_vars['batch_size']

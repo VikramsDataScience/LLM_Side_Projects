@@ -1,4 +1,4 @@
-model_ver: 0.02
+model_ver: 0.03
 content_path: 'C:/Sample Data/Job_Ad_QA_data'
 content_file: 'C:/Sample Data/Job_Ad_QA_data/content_cleaned.txt'
 train_file: 'C:/Sample Data/Job_Ad_QA_data/train_set.txt'
