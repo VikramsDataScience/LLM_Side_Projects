@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Churn Propensity Predictions</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="center-container">
+        <h1>Customer Churn Propensity Feature Selection</h1>
+    </div>
+    <form action="/predict" method="post" id="predictionForm">
+        <label for="CityTier">City Tier (required):</label><br>
+        <input type="radio" id="CityTier" name="CityTier" value="2" required> 2<br>
+        <input type="radio" id="CityTier" name="CityTier" value="3" required> 3<br><br>
+
+        <label for="WarehouseToHome">Warehouse to Home:</label><br>
+        <input type="number" id="WarehouseToHome" name="WarehouseToHome"><br>
+
+        <label for="SatisfactionScore">Satisfaction Score (required):</label><br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="1" required> 1<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="2" required> 2<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="3" required> 3<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="4" required> 4<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="5" required> 5<br>
+        <br><br>
+
+    <div id="result">
+        <input type="submit" value="Run Churn Prediction">
+    </div>
+</form>
+
+    <script>
+        document.getElementById('predictionForm').onsubmit = async function(event) {
+            event.preventDefault();
+            // Grab mandatory values from the submitted form
+            const CityTier = document.querySelector('input[name=CityTier]:checked').value;
+            const SatisfactionScore = document.querySelector('input[name=SatisfactionScore]:checked').value;
+            
+            // Grab the optional values from the submitted form
+            const WarehouseToHome = document.getElementById('WarehouseToHome').value || null;
+            
+            // Send POST request to /predict
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    CityTier, 
+                    SatisfactionScore, 
+                    WarehouseToHome
+                })
+        });
+        const result = await response.json();
+        document.getElementById('result').textContent = 'Churn Propensity: ' + result.prediction;
+        };
+    </script>
+</body>
+</html>
