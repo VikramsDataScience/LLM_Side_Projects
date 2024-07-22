@@ -28,7 +28,12 @@ df = pd.read_csv(data_path / 'PreProcessed_ECommerce_Dataset.csv')
 
 # Define target variable (y) and features (X)
 # The EDA exposed high correlation with the 'CashbackAmount' feature. So remove from X
-X = df.drop(['CustomerID', 'Churn', 'CashbackAmount'], axis=1)
+X = df.drop(['CustomerID', 'Churn', 'CashbackAmount', 'CityTier', 'WarehouseToHome', 'HourSpendOnApp', 'NumberOfDeviceRegistered',
+             'NumberOfAddress', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder', 'Tenure_(12, 24)', 'Tenure_(48, 60)',
+             'Tenure_(60, 72)', 'PreferredLoginDevice_Computer', 'PreferredLoginDevice_Mobile Phone', 'PreferredLoginDevice_Phone', 'PreferredPaymentMode_CC',
+             'PreferredPaymentMode_Credit Card', 'PreferredPaymentMode_Debit Card', 'PreferredPaymentMode_E wallet', 'Gender_Female',
+             'Gender_Male', 'PreferedOrderCat_Mobile', 'PreferedOrderCat_Mobile Phone', 'PreferedOrderCat_Others', 'MaritalStatus_Divorced',
+             'MaritalStatus_Married', 'PreferredPaymentMode_Cash on Delivery'], axis=1)
 y = df['Churn']
 
 # Define DMatrix and Hyper Parameters for XGBoost
