@@ -6,14 +6,17 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
+    <div class="main-heading">
+    <h1>Customer Churn Propensity Feature Selection</h1>
+    </div>
     <div class="center-container">
-        <h1>Customer Churn Propensity Feature Selection</h1>
-        <h3>NOTE: Please note that a response to all radio buttons are required for calculation to complete</h3>
+        <h3>NOTE: Please note that a response to all radio buttons is required for calculation to complete</h3>
         <p>The following form will take several inputs based on the highest feature importances of churn prediction found across the 3 models (Random Forest, XGBoost, and Logistic Regression), and will 
-            calculate the probability of churn. The calculation you'll see is the median probability value of all three models combined. In this way you'll be able to get a more balanced prediction of churn,
+            calculate the probability of churn. The calculation you'll see is the median probability value of all three models combined. In this way we're able to get a more balanced overall prediction of churn, 
             rather than be subject to the biases of any individual model.
         </p>
     </div>
+    <div class="form-container">
     <form action="/predict" method="post" id="predictionForm">
         <label for="SatisfactionScore" aria-required="true"><b>Satisfaction Score</b>:</label><br>
         <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="1"> 1<br>
@@ -59,9 +62,9 @@
         <input type="radio" id="MaritalStatus_Single" name="MaritalStatus_Single" value="0"> No<br><br>
 
         <br><br>
-
     <div id="result"></div>
         <input type="submit" value="Run Churn Prediction">
+    </div>
 </form>
 
     <script>
@@ -80,7 +83,7 @@
                 body: JSON.stringify(data)
         });
         const result = await response.json();
-        document.getElementById('result').textContent = 'Churn Propensity: ' + result.prediction;
+        document.getElementById('result').textContent = 'Probability of Churn: ' + result.prediction;
         };
     </script>
 </body>
