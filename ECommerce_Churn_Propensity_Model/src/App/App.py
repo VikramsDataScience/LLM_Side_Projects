@@ -56,7 +56,7 @@ def predict():
     combined_predictions = [float(log_reg_pred), float(RF_pred), float(XG_pred)]
 
     # Since Logistic Regression has significanly lower accuracy than RF and XGBoost, calculate and return the median F1-Score across all three models
-    return jsonify({'prediction': median(combined_predictions)})
+    return jsonify({'prediction': f'{round(median(combined_predictions) * 100, ndigits=2)}%'})
 
 if __name__ == '__main__':
     app.run(debug=True)
