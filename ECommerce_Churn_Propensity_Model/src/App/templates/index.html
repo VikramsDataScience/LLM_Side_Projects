@@ -6,26 +6,63 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="center-container">
-        <h1>Customer Churn Propensity Feature Selection</h1>
+    <div class="main-heading">
+    <h1>Customer Churn Propensity Feature Selection</h1>
     </div>
+    <div class="center-container">
+        <h3>NOTE: Please note that a response to all radio buttons is required for calculation to complete</h3>
+        <p>The following form will take several inputs based on the highest feature importances of churn prediction found across the 3 models (Random Forest, XGBoost, and Logistic Regression), and will 
+            calculate the probability of churn. The calculation you'll see is the median probability value of all three models combined. In this way we're able to get a more balanced overall prediction of churn, 
+            rather than be subject to the biases of any individual model.
+        </p>
+    </div>
+    <div class="form-container">
     <form action="/predict" method="post" id="predictionForm">
-        <label for="CityTier">City Tier (required):</label><br>
-        <input type="radio" id="CityTier" name="CityTier" value="2" required> 2<br>
-        <input type="radio" id="CityTier" name="CityTier" value="3" required> 3<br><br>
+        <label for="SatisfactionScore" aria-required="true"><b>Satisfaction Score</b>:</label><br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="1"> 1<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="2"> 2<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="3"> 3<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="4"> 4<br>
+        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="5"> 5<br><br>
 
-        <label for="WarehouseToHome">Warehouse to Home:</label><br>
-        <input type="number" id="WarehouseToHome" name="WarehouseToHome"><br>
+        <label for="Complain" aria-required="true"><b>Complain</b>:</label><br>
+        <input type="radio" id="Complain" name="Complain" value="1"> Yes<br>
+        <input type="radio" id="Complain" name="Complain" value="0"> No<br><br>
 
-        <label for="SatisfactionScore">Satisfaction Score (required):</label><br>
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="1" required> 1<br>
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="2" required> 2<br>
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="3" required> 3<br>
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="4" required> 4<br>
-        <input type="radio" name="SatisfactionScore" id="SatisfactionScore" value="5" required> 5<br>
+        <label for="Tenure_(0, 12)" aria-required="true"><b>Tenure (0 to 12 months)</b>:</label><br>
+        <input type="radio" id="Tenure_(0, 12)" name="Tenure_(0, 12)" value="1"> Yes<br>
+        <input type="radio" id="Tenure_(0, 12)" name="Tenure_(0, 12)" value="0"> No<br><br>
+
+        <label for="Tenure_(24, 48)" aria-required="true"><b>Tenure (24 to 48 months)</b>:</label><br>
+        <input type="radio" id="Tenure_(24, 48)" name="Tenure_(24, 48)" value="1"> Yes<br>
+        <input type="radio" id="Tenure_(24, 48)" name="Tenure_(24, 48)" value="0"> No<br><br>
+
+        <label for="PreferredPaymentMode_COD" aria-required="true"><b>Preferred Payment Mode (COD)</b>:</label><br>
+        <input type="radio" id="PreferredPaymentMode_COD" name="PreferredPaymentMode_COD" value="1"> Yes<br>
+        <input type="radio" id="PreferredPaymentMode_COD" name="PreferredPaymentMode_COD" value="0"> No<br><br>
+
+        <label for="PreferredPaymentMode_UPI" aria-required="true"><b>Preferred Payment Mode (UPI)</b>:</label><br>
+        <input type="radio" id="PreferredPaymentMode_UPI" name="PreferredPaymentMode_UPI" value="1"> Yes<br>
+        <input type="radio" id="PreferredPaymentMode_UPI" name="PreferredPaymentMode_UPI" value="0"> No<br><br>
+
+        <label for="PreferedOrderCat_Fashion" aria-required="true"><b>Prefered Order Category (Fashion)</b>:</label><br>
+        <input type="radio" id="PreferedOrderCat_Fashion" name="PreferedOrderCat_Fashion" value="1"> Yes<br>
+        <input type="radio" id="PreferedOrderCat_Fashion" name="PreferedOrderCat_Fashion" value="0"> No<br><br>
+
+        <label for="PreferedOrderCat_Grocery" aria-required="true"><b>Prefered Order Category (Grocery)</b>:</label><br>
+        <input type="radio" id="PreferedOrderCat_Grocery" name="PreferedOrderCat_Grocery" value="1"> Yes<br>
+        <input type="radio" id="PreferedOrderCat_Grocery" name="PreferedOrderCat_Grocery" value="0"> No<br><br>
+
+        <label for="PreferedOrderCat_Laptop & Accessory" aria-required="true"><b>Prefered Order Category (Laptop & Accessory)</b>:</label><br>
+        <input type="radio" id="PreferedOrderCat_Laptop & Accessory" name="PreferedOrderCat_Laptop & Accessory" value="1"> Yes<br>
+        <input type="radio" id="PreferedOrderCat_Laptop & Accessory" name="PreferedOrderCat_Laptop & Accessory" value="0"> No<br><br>
+
+        <label for="MaritalStatus_Single" aria-required="true"><b>Marital Status Single</b>:</label><br>
+        <input type="radio" id="MaritalStatus_Single" name="MaritalStatus_Single" value="1"> Yes<br>
+        <input type="radio" id="MaritalStatus_Single" name="MaritalStatus_Single" value="0"> No<br><br>
+
         <br><br>
-
-    <div id="result">
+    <div id="result"></div>
         <input type="submit" value="Run Churn Prediction">
     </div>
 </form>
@@ -34,26 +71,19 @@
         document.getElementById('predictionForm').onsubmit = async function(event) {
             event.preventDefault();
             // Grab mandatory values from the submitted form
-            const CityTier = document.querySelector('input[name=CityTier]:checked').value;
-            const SatisfactionScore = document.querySelector('input[name=SatisfactionScore]:checked').value;
-            
-            // Grab the optional values from the submitted form
-            const WarehouseToHome = document.getElementById('WarehouseToHome').value || null;
-            
+            const formData = new FormData(document.getElementById('predictionForm'));
+            const data = Object.fromEntries(formData.entries());
+
             // Send POST request to /predict
             const response = await fetch('/predict', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    CityTier, 
-                    SatisfactionScore, 
-                    WarehouseToHome
-                })
+                body: JSON.stringify(data)
         });
         const result = await response.json();
-        document.getElementById('result').textContent = 'Churn Propensity: ' + result.prediction;
+        document.getElementById('result').textContent = 'Probability of Churn: ' + result.prediction;
         };
     </script>
 </body>

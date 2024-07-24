@@ -1,21 +1,10 @@
 import json
-import re
 import ftfy
 from ftfy import TextFixerConfig
 from tqdm.auto import tqdm
 from pathlib import Path
 import yaml
-import logging
 from bs4 import BeautifulSoup
-
-logger = logging.getLogger('Q&A_PreProcessing')
-logger.setLevel(logging.ERROR)
-error_handler = logging.StreamHandler()
-error_handler = logging.FileHandler(Path('C:/Users/Vikram Pande/Side_Projects_(OUTSIDE_REPO)/Error_Logs/Q&A_PreProcessing_log.log'))
-error_handler.setLevel(logging.ERROR)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-error_handler.setFormatter(formatter)
-logger.addHandler(error_handler)
 
 # Load the file paths and global variables from YAML config file
 try:
@@ -25,7 +14,6 @@ try:
         global_vars = yaml.safe_load(file)
 except:
     print(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
-    # logger.error(f'{config_path} YAML Configuration file path not found. Please check the storage path of the \'config.yml\' file and try again')
 
 # Declare paths for the raw and cleaned JSON files
 clean_list = []
