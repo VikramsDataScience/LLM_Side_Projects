@@ -36,40 +36,16 @@ def predict():
     data = request.json
 
     features = [
-	    data['CityTier'],
-        data['WarehouseToHome'],
-        data['HourSpendOnApp'],
-        data['NumberOfDeviceRegistered'],
-        data['SatisfactionScore'],
-        data['NumberOfAddress'],
-        data['Complain'],
-        data['OrderAmountHikeFromlastYear'],
-        data['CouponUsed'],
-        data['OrderCount'],
-        data['DaySinceLastOrder'],
-        data['Tenure_(0, 12)'],
-        data['Tenure_(12, 24)'],
-        data['Tenure_(24, 48)'],
-        data['PreferredLoginDevice_Computer'],
-        data['PreferredLoginDevice_Mobile Phone'],
-        data['PreferredLoginDevice_Phone'],
-        data['PreferredPaymentMode_CC'],
-        data['PreferredPaymentMode_COD'],
-        data['PreferredPaymentMode_Cash on Delivery'],
-        data['PreferredPaymentMode_Credit Card'],
-        data['PreferredPaymentMode_Debit Card'],
-        data['PreferredPaymentMode_E wallet'],
-        data['PreferredPaymentMode_UPI'],
-        data['Gender_Female'],
-        data['Gender_Male'],
-        data['PreferedOrderCat_Fashion'],
-        data['PreferedOrderCat_Grocery'],
-        data['PreferedOrderCat_Laptop & Accessory'],
-        data['PreferedOrderCat_Mobile Phone'],
-        data['PreferedOrderCat_Others'],
-        data['MaritalStatus_Divorced'],
-        data['MaritalStatus_Married'],
-        data['MaritalStatus_Single']
+        int(data['SatisfactionScore']),
+        int(data['Complain']),
+        int(data['Tenure_(0, 12)']),
+        int(data['Tenure_(24, 48)']),
+        int(data['PreferredPaymentMode_COD']),
+        int(data['PreferredPaymentMode_UPI']),
+        int(data['PreferedOrderCat_Fashion']),
+        int(data['PreferedOrderCat_Grocery']),
+        int(data['PreferedOrderCat_Laptop & Accessory']),
+        int(data['MaritalStatus_Single'])
     ]
 
     # Select positive class (i.e. probability of churn). Shape of predict_proba() should be [negative class, positive class]
@@ -77,10 +53,10 @@ def predict():
     RF_pred = RF_model.predict_proba([features])[0][1]
     XG_pred = XGBoost_model.predict_proba([features])[0][1]
 
-    combined_predictions = [log_reg_pred, RF_pred, XG_pred]
+    combined_predictions = [float(log_reg_pred), float(RF_pred), float(XG_pred)]
 
     # Since Logistic Regression has significanly lower accuracy than RF and XGBoost, calculate and return the median F1-Score across all three models
-    return jsonify({'prediction': median(combined_predictions)})
+    return jsonify({'prediction': f'{round(median(combined_predictions) * 100, ndigits=2)}%'})
 
 if __name__ == '__main__':
     app.run(debug=True)
