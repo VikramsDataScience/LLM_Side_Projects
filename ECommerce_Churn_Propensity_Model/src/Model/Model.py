@@ -37,14 +37,16 @@ X = df.drop(['CustomerID', 'Churn', 'CashbackAmount', 'CityTier', 'WarehouseToHo
 y = df['Churn']
 
 # Define DMatrix and Hyper Parameters for XGBoost
-d_matrix = xgb.DMatrix(data=X, label=y)
+d_matrix = xgb.DMatrix(data=X, 
+                       label=y,
+                       enable_categorical=True)
 params = {
             'objective':'binary:logistic',
             'max_depth': 9,
             # 'alpha': 10, # L1 Regularization on the leaf nodes (larger value means greater regularization) 
             'lambda': 10, # L2 Regularization on the leaf nodes (larger value means greater regularization). L2 is smoother than L1 and tends to better prevent overfitting
             'learning_rate': 0.4,
-            'n_estimators':100
+            'n_estimators':100,
         }
 
 # Perform Train/Test split with Stratification since the class labels, y, is an imbalanced dataset that favours those who didn't churn (i.e. ~83% didn't churn)

@@ -30,18 +30,24 @@ These are the descriptions of the dimensions from the dataframe that was posted 
 - This discovery led me to research and more deeply understand how bin lengths can be dynamically calculated prior to running the $φ_K$ matrix.
 - The y-data profiling report did expose how the 5 Interval columns `WarehouseToHome`, `CashbackAmount`, `DaySinceLastOrder`, `OrderCount`, and `Tenure` are skewed (please refer to the notes in the 'Statistical insights from the generated reports and Correlation Matrix' section below). The identification of these skewed columns meant that the bin length calculation needed to account for skewness.
 - Bearing this in mind, my research led me to `Doane's Formula`. This is an extension of the simpler `Sturges's Formula` (which only takes into account the number of observations in the data, and takes the base 2 logarithm of that number):<br>
+<!-- centered equation -->
 $$k = 1 + \log_2(n)$$
-Where:<br>
+<!-- centered equation -->
+<br>Where:<br>
 - $k$ represents the length of the bins<br>
 - $n$ represents the number of observations (i.e. length of the dataset)<br>
 ### Doane's Formula:<br>
+<!-- centered equation -->
 $$k = 1 + \log_2(n) + \log_2\left(1 + \frac{|g_1|}{\sigma_{g_1}}\right)$$
-Where:<br> 
+<!-- centered equation -->
+<br>Where:<br> 
 - $k$ represents the length of the bins<br>
 - $n$ represents the number of observations (i.e. length of the dataset)
 - $g_1$ represents the skewness 
 - ${\sigma_{g_1}}$ represents the standard error of skewness that is denoted by:
-$$\sigma_{g_1} = \sqrt{\frac{6(n-2)}{(n+1)(n+3)}}$$
+<!-- centered equation -->
+<br>$$\sigma_{g_1} = \sqrt{\frac{6(n-2)}{(n+1)(n+3)}}$$<br>
+<!-- centered equation -->
 - Since there doesn't appear to be a Python library to support Doane's Formula, I wrote a custom Python implementation of the above equation that can be found in the `EDA.py` module defined as the function `doanes_formula()`.
 
 ## Statistical insights from the generated reports and Correlation Matrix
