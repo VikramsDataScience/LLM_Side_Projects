@@ -1,6 +1,3 @@
-import os
-import sys
-import contextlib
 from os.path import exists
 import pandas as pd
 from scipy.stats import skew
@@ -9,47 +6,38 @@ from pathlib import Path
 from ydata_profiling import ProfileReport
 from phik import phik_matrix, significance_matrix
 from missforest.missforest import MissForest
-from .config import Config
+from ..src.config import Config, suppress_stdout
 
 # Load the file paths and global variables from the Config file
 config = Config()
-content_file = config.content_path
+content_file = config.content_file
 data_path = config.data_path
-
-df = pd.read_excel(Path(content_file), sheet_name=1)
-
-# Define columns for casting and interval definitions
-categorical_columns = ['PreferredLoginDevice', 'CityTier', 'PreferredPaymentMode', 'Gender', 'PreferedOrderCat', 'SatisfactionScore', 'MaritalStatus', 'Complain', 'Churn', 'CouponUsed']
-float_columns = ['Tenure', 'WarehouseToHome', 'OrderAmountHikeFromlastYear', 'CouponUsed', 'OrderCount', 'DaySinceLastOrder']
-skewed_interval_cols = ['WarehouseToHome', 'Tenure', 'CashbackAmount', 'DaySinceLastOrder', 'OrderCount']
+categorical_columns = config.categorical_cols
+skewed_interval_columns = config.skewed_interval_cols
+float_columns = config.float_cols
 interval_bins = {}
-missforest_imputer = MissForest()
 
-@contextlib.contextmanager
-def suppress_stdout():
+def read_impute_data(df_path, float_cols, categorical_cols, sheet_name=None):
     """
-    For any library that contains (undesirably) verbose output. Use this boilerplate function to suppress.
+    Read in Excel/CSV file, define columns for casting & interval definitions, and perform imputation
+    with Missing Forest.
     """
-    with open(os.devnull, 'w') as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
-
-# Perform count of NaNs in the defined interval columns for downstream bin length calculation using Doane's Formula
-# N.B.: NOT NECESSARY IF USING IMPUTATION STRATEGY
-skewed_nan_dict = {col: df[col].isna().sum() for col in skewed_interval_cols}
-print('SKEWED NaN COUNT DICTIONARY:\n', skewed_nan_dict)
-
-# Cast float_columns as integers and dynamically impute NaN values using MissForest
-with suppress_stdout():
-  df = missforest_imputer.fit_transform(x=df, 
-                                    categorical=categorical_columns)
-
-df[float_columns] = df[float_columns].astype(int)
-print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
+    missforest_imputer = MissForest()
+    if '.xlsx' in df_path.suffix:
+        df = pd.read_excel(df_path, sheet_name)
+    elif '.csv' in df_path.suffix:
+        df = pd.read_csv(df_path)
+    
+    # Cast float_columns as integers, impute NaN values using MissForest
+    with suppress_stdout():
+        df = missforest_imputer.fit_transform(x=df,
+                                        categorical=categorical_cols)
+        df[float_cols] = df[float_cols].astype(int)
+    
+    # Save to storage for downstream PreProcessing module
+    df.to_csv(Path(data_path) / 'ECommerce_Dataset_IMPUTED.csv')
+    
+    return df
 
 ########## Define the Mathematical equations to be used for Skewed bin length calculations ##########
 def doanes_formula(data, nan_count) -> int:
@@ -74,10 +62,14 @@ def doanes_formula(data, nan_count) -> int:
 
     return int(np.trunc(k))
 
+df = read_impute_data(df_path=content_file, sheet_name=1, float_cols=float_columns, categorical_cols=categorical_columns)
+df[float_columns] = df[float_columns].astype(int)
+print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
+
 ########## Phi K Correlation calculation and report generation ##########
 # Apply Doane's Formula to calculate and store bin sizes for the skewed data in a Dictionary structure as prepartion for Phi K Correlation
-for col in skewed_interval_cols:
-    skewed_bin_len = doanes_formula(df[col], nan_count=0) # skewed_nan_dict[col]
+for col in skewed_interval_columns:
+    skewed_bin_len = doanes_formula(df[col], nan_count=0)
     intervals = {
     col: skewed_bin_len
     }
