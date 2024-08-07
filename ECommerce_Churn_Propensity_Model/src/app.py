@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 from pathlib import Path
-from .config import Config
 import pickle
 from statistics import median
+from . import Config
 
 # Load the file paths and global variables from the Config file
 config = Config()
