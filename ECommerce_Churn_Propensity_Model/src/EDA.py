@@ -15,7 +15,11 @@ skewed_interval_columns = config.skewed_interval_cols
 float_columns = config.float_cols
 interval_bins = {}
 
-df = read_impute_data(df_path=Path(content_file), sheet_name=1, float_cols=float_columns, categorical_cols=categorical_columns)
+df = read_impute_data(df_path=Path(content_file), 
+                      sheet_name=1, 
+                      float_cols=float_columns, 
+                      categorical_cols=categorical_columns)
+
 df[float_columns] = df[float_columns].astype(int)
 print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
 
