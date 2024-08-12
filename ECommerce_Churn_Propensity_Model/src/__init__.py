@@ -105,12 +105,14 @@ def doanes_formula(data, nan_count) -> int:
     k = 1 + np.log2(n) + np.log2(1 + abs(g1) / sigma_g1)
     return int(np.trunc(k))
 
-def read_impute_data(df_path, float_cols, categorical_cols, sheet_name=None) -> pd.DataFrame:
+def read_impute_data(df_path, float_cols, categorical_cols, output_path, sheet_name=None) -> pd.DataFrame:
     """
     Read in Excel/CSV file, define columns for casting & interval definitions, and perform imputation
     with Missing Forest.
     IMPORTANT NOTE: When parsing to the 'df_path' arg, only parse from the 'Path' class in the 'pathlib'
-    library
+    library.
+    - 'sheet_name' (OPTIONAL): Only required when reading Excel files to indicate which Excel sheet to read
+    into the DataFrame.
     """
     missforest_imputer = MissForest()
     if '.xlsx' in df_path.suffix:
@@ -125,15 +127,15 @@ def read_impute_data(df_path, float_cols, categorical_cols, sheet_name=None) -> 
         df[float_cols] = df[float_cols].astype(int)
     
     # Save to storage for downstream PreProcessing module
-    df.to_csv(Path(data_path) / 'ECommerce_Dataset_IMPUTED.csv')  
+    df.to_csv(output_path)  
     return df
 
 def pre_processing(df_path, bins, onehot_cols, output_path, bin_cols=str, sheet_name=None) -> pd.DataFrame:
     """
     Positional arg definitions:
-    - bins: Set range of bins for pd.cut() to use. Must be List data structure
-    - bin_cols: Which col names need to parsed. Must be 'str' dtype
-    - sheet_name (OPTIONAL): Only specify when reading Excel files to indicate which Excel sheet to read
+    - 'bins': Set range of bins for pd.cut() to use. Must be List data structure
+    - 'bin_cols': Which col names need to parsed. Must be 'str' dtype
+    - 'sheet_name' (OPTIONAL): Only required when reading Excel files to indicate which Excel sheet to read
     into the DataFrame.
     """
     if '.xlsx' in df_path.suffix:

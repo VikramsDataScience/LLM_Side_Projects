@@ -18,7 +18,8 @@ interval_bins = {}
 df = read_impute_data(df_path=Path(content_file), 
                       sheet_name=1, 
                       float_cols=float_columns, 
-                      categorical_cols=categorical_columns)
+                      categorical_cols=categorical_columns,
+                      output_path=Path(data_path) / 'ECommerce_Dataset_IMPUTED.csv')
 
 df[float_columns] = df[float_columns].astype(int)
 print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
