@@ -34,7 +34,7 @@ class Test(unittest.TestCase):
         """
         Execute Test Case to determine if the preprocessed data contains:
         - NaNs: Whilst running the pre_processing() the pd.cut() function's 'right' positional arg may be set to True 
-        or not specified. If it's set to either True or not specified,it can created NaNs in the resulting DataFrame. 
+        or not specified. If it's set to either True or not specified, it can create NaNs in the resulting DataFrame. 
         The 'right' arg needs to set to False.
         - renamed columns: The same pd.cut() function will also create a ']' closed column (which is mathematically
         very correct!). Whilst this is mathematically sound, the XGBClassifier() hates it and will raise column name 
@@ -58,7 +58,7 @@ class Test(unittest.TestCase):
         
         # Perform tests and generate pass/fail print statements
         nan_test = self.assertFalse(expr=pre_process_test.isna().values.any(),
-                                    msg='THERE ARE NANS IN THE INTERVAL COLUMNS! PLEASE CHECK THE PD.CUT() ARGS TO DEBUG')
+                                    msg='THERE ARE NANS IN THE INTERVAL COLUMNS! PLEASE CHECK THE PD.CUT() \'RIGHT\' ARG TO DEBUG')
         renamed_col_test = self.assertFalse(expr=bracket_test(pre_process_test),
                                             msg='THE INTERVAL BRACKETS ARE INCOMPATIBLE WITH XGBCLASSIFER(). PLEASE CHECK IF THE RETURNED INTERVAL COLUMNS CONTAIN BRACKETS OTHER THAN \'(\' OR \')\'')
         

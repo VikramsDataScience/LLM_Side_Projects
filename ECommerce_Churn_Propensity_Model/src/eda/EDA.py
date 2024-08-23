@@ -3,8 +3,8 @@ from pathlib import Path
 from ydata_profiling import ProfileReport
 from phik import phik_matrix, significance_matrix
 
-# Load variables from __init__.py
-from . import read_impute_data, doanes_formula, Config
+# Load variables from __init__.py 
+from . import Config, read_impute_data, doanes_formula
 
 # Load the file paths and global variables from the Config file
 config = Config()
@@ -24,7 +24,6 @@ df = read_impute_data(df_path=Path(content_file),
 df[float_columns] = df[float_columns].astype(int)
 print('\nRECASTED DATA FRAME WITHOUT NaN VALUES:\n', df)
 
-########## Phi K Correlation calculation and report generation ##########
 # Apply Doane's Formula to calculate and store bin sizes for the skewed data in a Dictionary structure as prepartion for Phi K Correlation
 for col in skewed_interval_columns:
     skewed_bin_len = doanes_formula(df[col], nan_count=0)
@@ -35,6 +34,7 @@ for col in skewed_interval_columns:
 
 print('RESULTS OF DOANE\'S CALCULATION OF BIN LENGTHS FOR DECLARED INTERVAL VARIABLES:\n', interval_bins)
 
+########## GENERATE PHI_K CORRELATION MATRIX ##########
 # If the following Matrices don't exist, generate and store them as CSVs
 if not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path) / 'significance_matrix.csv'):
 
@@ -44,11 +44,11 @@ if not exists(Path(data_path) / 'phi_k_matrix.csv') or not exists(Path(data_path
                 noise_correction=True).to_csv(Path(data_path) / 'phi_k_matrix.csv')
     
     # Please note that calculating a Significance Matrix can be a little slow!
-    significance_matrix(df,
-                        bins=interval_bins,
-                        interval_cols=interval_bins,
-                        significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
-                        ).to_csv(Path(data_path) / 'significance_matrix.csv')
+    # significance_matrix(df,
+    #                     bins=interval_bins,
+    #                     interval_cols=interval_bins,
+    #                     significance_method='hybrid' # Hybrid method between calculating G-Test Statistic (asymptotic) and Monte Carlo simulations is default and recommended by the authors
+    #                     ).to_csv(Path(data_path) / 'significance_matrix.csv')
     
 ########## Y-Data Profiling ##########
 # If the EDA profiling report doesn't exist, generate report as an HTML document
