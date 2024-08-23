@@ -5,10 +5,9 @@ from pathlib import Path
 import pickle
 
 # Load variables from __init__.py
-from . import models_config, insample_scores, outofsample_scores, X, X_train, X_test, y_train, y_test, Config
+from . import models_config, insample_scores, outofsample_scores, X, X_train, X_test, y_train, y_test, Config, data_path
 
 config = Config()
-data_path = Path(config.data_path)
 churn_app_path = Path(config.churn_app_models)
 
 for model in models_config:
