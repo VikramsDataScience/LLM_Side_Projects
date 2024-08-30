@@ -1,6 +1,8 @@
 import unittest
 from pathlib import Path
-from .src import read_impute_data, pre_processing, Config
+from .src.config import Config
+from .src.eda import read_impute_data
+from .src.preprocessing import pre_processing
 
 config = Config()
 data_path = config.data_path

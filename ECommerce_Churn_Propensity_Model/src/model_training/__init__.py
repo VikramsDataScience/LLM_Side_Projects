@@ -10,6 +10,7 @@ from pathlib import Path
 config = Config()
 data_path = config.data_path
 seed = config.seed
+churn_app_path = Path(config.churn_app_models)
 
 insample_scores = pd.DataFrame(columns=['Model', 'Precision', 'Recall', 'F1-Score'])
 outofsample_scores = pd.DataFrame(columns=['Model', 'Precision', 'Recall', 'F1-Score'])
