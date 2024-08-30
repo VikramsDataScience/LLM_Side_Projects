@@ -47,7 +47,7 @@ def read_impute_data(df_path, float_cols, categorical_cols, output_path, sheet_n
     elif '.csv' in df_path.suffix:
         df = pd.read_csv(df_path)
     
-    # Cast float_columns as integers, impute NaN values using MissForest
+    # Cast float_columns as integers, dynamically impute values using MissForest
     with suppress_stdout():
         df = missforest_imputer.fit_transform(x=df,
                                         categorical=categorical_cols)

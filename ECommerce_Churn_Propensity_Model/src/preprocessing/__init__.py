@@ -22,11 +22,9 @@ def pre_processing(df_path, bins, onehot_cols, output_path, bin_cols=str, sheet_
     df[bin_cols] = pd.cut(df[bin_cols], bins, right=False)
     print(df.value_counts(bin_cols))
 
-    df.set_index('CustomerID', inplace=True)
     df = pd.get_dummies(df, columns=onehot_cols, dtype=int)
     # Rename the closed interval '[' columns to suit XGBClassifier() class. Otherwise XGBClassifier() will raise column name errors
     df.columns = [col.replace('[', '(') for col in df.columns]
-    # df = df.drop(['Unnamed: 0'], axis=1)
 
     # Save PreProcessed Data Frame for downstream consumption
     df.to_csv(output_path, index=False)

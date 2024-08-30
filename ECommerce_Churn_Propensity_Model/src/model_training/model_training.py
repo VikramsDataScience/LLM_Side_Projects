@@ -1,14 +1,10 @@
-import pandas as pd
+from pathlib import Path
 from sklearn.metrics import precision_recall_fscore_support, confusion_matrix, ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
-from pathlib import Path
 import pickle
-
+import pandas as pd
 # Load variables from __init__.py
-from . import models_config, insample_scores, outofsample_scores, X, X_train, X_test, y_train, y_test, Config, data_path
-
-config = Config()
-churn_app_path = Path(config.churn_app_models)
+from . import models_config, insample_scores, outofsample_scores, data_path, X, X_train, X_test, y_train, y_test, churn_app_path
 
 for model in models_config:
     print(f'COMMENCING TRAINING FOR \'{model}\':')
@@ -29,7 +25,7 @@ for model in models_config:
     train_conf_matrix = confusion_matrix(y_train, y_pred)
     cm_display = ConfusionMatrixDisplay(confusion_matrix=train_conf_matrix, display_labels=[False, True])
     cm_display.plot()
-    plt.savefig(Path(data_path / 'train_conf_matrix.png'))
+    plt.savefig(Path(data_path) / 'train_conf_matrix.png')
     
     # Test set predictions (Out of Sample)
     y_test_pred = models_config[model].predict(X_test)
@@ -46,7 +42,7 @@ for model in models_config:
     test_conf_matrix = confusion_matrix(y_test, y_test_pred)
     cm_display = ConfusionMatrixDisplay(confusion_matrix=test_conf_matrix, display_labels=[False, True])
     cm_display.plot()
-    plt.savefig(Path(data_path / 'OOS_conf_matrix.png'))
+    plt.savefig(Path(data_path) / 'OOS_conf_matrix.png')
 
     if model == 'logistic_regression':
         print(f'{model} Feature Importances:\n', models_config[model].coef_)
