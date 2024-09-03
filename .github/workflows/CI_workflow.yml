@@ -1,0 +1,41 @@
+name: CI Workflow
+
+on:
+  push:
+    branches:
+    - dev
+  
+  # Trigger workflow when a PR is created to push to the 'dev' branch
+  pull_request:
+    branches:
+      - dev
+    
+    # Only trigger workflow when there are changes to the following folders
+    paths:
+      - ECommerce_Churn_Propensity_Model/**
+
+jobs:
+  churn_propensity_project:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python: [3.11.5]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3 # Clone the repo (Info: https://github.com/actions/checkout)
+      
+      - name: Install Python
+        uses: actions/setup-python@v4 # Info: https://github.com/actions/setup-python
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install python dependencies
+        run: |
+          pip install -r ECommerce_Churn_Propensity_Model/requirements.txt
+      
+      - name: Run unit tests
+        run: |
+          python -m unittest discover -s ECommerce_Churn_Propensity_Model/tests -p "*.py"
+      
