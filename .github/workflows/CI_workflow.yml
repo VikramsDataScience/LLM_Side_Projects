@@ -4,7 +4,7 @@ on:
   push:
     branches:
     - dev
-  
+ 
   # Trigger workflow when a PR is created to push to the 'dev' branch
   pull_request:
     branches:
@@ -21,7 +21,6 @@ jobs:
       matrix:
         os: [windows-latest]
         python: [3.11.5]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3 # Clone the repo (Info: https://github.com/actions/checkout)
@@ -31,9 +30,13 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install python dependencies
+      - name: Install python dependencies # Based on requirements.txt
         run: |
           pip install -r ECommerce_Churn_Propensity_Model/requirements.txt
+
+      - name: Set up Python path
+        run: | 
+            echo "PYTHONPATH=$PYTHONPATH:${{ github.workspace }}/ECommerce_Churn_Propensity_Model/src" >> $GITHUB_ENV
       
       - name: Run unit tests
         run: |
