@@ -1,0 +1,6 @@
+__pycache__/
+Training_Logs/
+
+# Flask stuff
+ECommerce_Churn_Propensity_Model/src/static
+ECommerce_Churn_Propensity_Model/src/templates

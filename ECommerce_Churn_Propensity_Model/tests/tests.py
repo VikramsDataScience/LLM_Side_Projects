@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 import pandas as pd
-from .src.config import Config
+from ..src.config import Config
 
 config = Config()
 data_path = config.data_path
